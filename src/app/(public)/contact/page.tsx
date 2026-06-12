@@ -6,7 +6,7 @@ import { FadeIn } from "@/components/shared/fade-in";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Get in touch with RFIDHub — request a quote, ask a technical question, or discuss your RFID deployment needs.",
+    "Get in touch with Virtualsphere — request a quote, ask a technical question, or discuss your RFID deployment needs.",
 };
 
 export default function ContactPage() {

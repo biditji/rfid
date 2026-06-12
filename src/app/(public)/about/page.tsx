@@ -12,7 +12,7 @@ import { FadeIn } from "@/components/shared/fade-in";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Learn about RFIDHub — our mission, team, and commitment to delivering enterprise-grade RFID solutions worldwide.",
+    "Learn about Virtualsphere — our mission, team, and commitment to delivering enterprise-grade RFID solutions worldwide.",
 };
 
 const stats = [
@@ -78,7 +78,7 @@ const timeline = [
     year: "2025",
     title: "Admin Platform Launch",
     description:
-      "Launched the RFIDHub management platform, giving customers real-time inventory and order visibility.",
+      "Launched the Virtualsphere management platform, giving customers real-time inventory and order visibility.",
   },
 ];
 
@@ -120,12 +120,12 @@ export default function AboutPage() {
                   <span className="text-zinc-400">actually work.</span>
                 </h1>
                 <p className="mt-5 text-lg leading-relaxed text-zinc-500">
-                  RFIDHub was founded on a simple observation: buying RFID
+                  Virtualsphere was founded on a simple observation: buying RFID
                   hardware shouldn&apos;t require a procurement department, three
                   conference calls, and a six-week lead time.
                 </p>
                 <p className="mt-4 leading-relaxed text-zinc-500">
-                  We built RFIDHub to be the opposite — a focused,
+                  We built Virtualsphere to be the opposite — a focused,
                   knowledgeable supplier where you can find the right product,
                   get real technical guidance, and have it shipped the same day.
                   No fluff, no middlemen, no unnecessary complexity.

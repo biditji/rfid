@@ -5,7 +5,7 @@ import { AdminTopbar } from "@/components/admin/topbar";
 export const metadata: Metadata = {
   title: {
     default: "Admin Dashboard",
-    template: "%s — RFIDHub Admin",
+    template: "%s — Virtualsphere Admin",
   },
   robots: {
     index: false,

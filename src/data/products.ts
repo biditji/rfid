@@ -303,7 +303,7 @@ export const products: Product[] = [
       "Antennas": "2 × circular polarized panel",
       "Tags": "500 × UHF wet inlays",
       "Cables": "2 × 6m antenna cables (RP-TNC)",
-      "Software": "RFIDHub Inventory Lite (1-year license)",
+      "Software": "Virtualsphere Inventory Lite (1-year license)",
       "Support": "90-day email support",
       "Documentation": "Quick start guide + video tutorials",
     },

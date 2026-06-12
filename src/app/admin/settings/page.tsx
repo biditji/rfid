@@ -30,7 +30,7 @@ export default function SettingsPage() {
             <input
               type="text"
               id="site-name"
-              defaultValue="RFIDHub"
+              defaultValue="Virtualsphere"
               className="mt-1.5 block h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
             />
           </div>

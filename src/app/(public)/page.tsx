@@ -8,7 +8,7 @@ import { IndustriesSection } from "@/components/home/industries-section";
 import { CTASection } from "@/components/home/cta-section";
 
 export const metadata: Metadata = {
-  title: "RFIDHub — Enterprise RFID Solutions",
+  title: "Virtualsphere — Enterprise RFID Solutions",
   description:
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
 };

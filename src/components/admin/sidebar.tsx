@@ -12,7 +12,7 @@ import {
   Users,
   Search,
   Settings,
-  Radio,
+  Globe,
   PanelLeftClose,
   PanelLeft,
   Bell,
@@ -73,17 +73,16 @@ export function AdminSidebar() {
         <Link
           href="/admin"
           className={cn(
-            "flex items-center gap-2",
+            "flex items-center",
             collapsed && "justify-center"
           )}
         >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900">
-            <Radio className="h-3.5 w-3.5 text-white" />
-          </div>
-          {!collapsed && (
-            <span className="text-sm font-semibold text-zinc-900">
-              RFIDHub
-            </span>
+          {collapsed ? (
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-zinc-100 font-bold text-zinc-900">
+              V
+            </div>
+          ) : (
+            <img src="/logo.png" alt="Virtualsphere Technologies" className="h-6 object-contain" />
           )}
         </Link>
         <button

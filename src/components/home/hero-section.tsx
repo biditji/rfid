@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Radio } from "lucide-react";
+import { ArrowRight, Globe } from "lucide-react";
 import { FadeIn } from "@/components/shared/fade-in";
 
 export function HeroSection() {
@@ -18,16 +18,11 @@ export function HeroSection() {
         />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
+      <div className="relative mx-auto max-w-7xl px-4 pt-12 pb-20 sm:px-6 sm:pt-16 sm:pb-28 lg:px-8 lg:pt-20 lg:pb-32">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Left: Content */}
           <div>
-            <FadeIn>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-600">
-                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Trusted by 500+ enterprises
-              </div>
-            </FadeIn>
+
 
             <FadeIn delay={0.1}>
               <h1 className="text-4xl font-bold leading-tight tracking-tight text-zinc-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.1]">
@@ -89,7 +84,7 @@ export function HeroSection() {
               <div className="aspect-[4/3] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 p-8">
                 <div className="flex h-full flex-col items-center justify-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900">
-                    <Radio className="h-8 w-8 text-white" />
+                    <Globe className="h-8 w-8 text-white" />
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-zinc-900">

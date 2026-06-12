@@ -1,5 +1,5 @@
 export const SITE_CONFIG = {
-  name: "RFIDHub",
+  name: "Virtualsphere",
   tagline: "Enterprise RFID Solutions",
   description:
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",

@@ -32,7 +32,7 @@ export default function SEOPage() {
             <input
               type="text"
               id="seo-title"
-              defaultValue="RFIDHub — Enterprise RFID Solutions"
+              defaultValue="Virtualsphere — Enterprise RFID Solutions"
               className="mt-1.5 block h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
             />
             <p className="mt-1 text-xs text-zinc-400">
@@ -113,7 +113,7 @@ export default function SEOPage() {
             <input
               type="text"
               id="og-title"
-              defaultValue="RFIDHub — Enterprise RFID Solutions"
+              defaultValue="Virtualsphere — Enterprise RFID Solutions"
               className="mt-1.5 block h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
             />
           </div>

@@ -1,133 +1,132 @@
 "use client";
 
-import { useState } from "react";
-import { Search, ArrowUpRight } from "lucide-react";
-import { orders } from "@/data/orders";
-import { formatCurrency, formatDate, cn } from "@/lib/utils";
-
-const statusTabs = ["All", "Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
-
-const statusColors: Record<string, string> = {
-  pending: "bg-amber-50 text-amber-700",
-  processing: "bg-blue-50 text-blue-700",
-  shipped: "bg-violet-50 text-violet-700",
-  delivered: "bg-emerald-50 text-emerald-700",
-  cancelled: "bg-red-50 text-red-700",
-};
+import { useEffect, useState } from "react";
+import { fetchAllOrders, updateOrderStatus } from "@/lib/api";
+import { formatCurrency, cn } from "@/lib/utils";
+import { Package, Search, ChevronRight } from "lucide-react";
 
 export default function AdminOrdersPage() {
-  const [activeTab, setActiveTab] = useState("All");
-  const [search, setSearch] = useState("");
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = orders.filter((o) => {
-    const matchesTab =
-      activeTab === "All" || o.status === activeTab.toLowerCase();
-    const matchesSearch =
-      !search ||
-      o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-      o.customer.name.toLowerCase().includes(search.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  useEffect(() => {
+    async function loadOrders() {
+      try {
+        const token = localStorage.getItem("rfid_token");
+        if (token) {
+          const data = await fetchAllOrders(token);
+          setOrders(data);
+        }
+      } catch (error) {
+        console.error("Failed to load orders", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadOrders();
+  }, []);
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const token = localStorage.getItem("rfid_token");
+      if (!token) return;
+      
+      await updateOrderStatus(orderId, newStatus, token);
+      
+      // Update local state to reflect change instantly
+      setOrders(orders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
+    } catch (error) {
+      console.error("Failed to update status", error);
+      alert("Failed to update status");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-zinc-900">Orders</h1>
-        <p className="text-sm text-zinc-500">Track and manage customer orders</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Orders</h1>
+          <p className="text-sm text-zinc-500">Manage all customer orders across the platform.</p>
+        </div>
+        
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search orders..."
+            className="h-9 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-zinc-300 focus:ring-2 focus:ring-zinc-100"
+          />
+        </div>
       </div>
 
-      {/* Status tabs */}
-      <div className="flex flex-wrap gap-1 border-b border-zinc-200">
-        {statusTabs.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "relative px-3 py-2 text-sm font-medium transition-colors",
-              activeTab === tab
-                ? "text-zinc-900"
-                : "text-zinc-500 hover:text-zinc-700"
-            )}
-          >
-            {tab}
-            {activeTab === tab && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 bg-zinc-900" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-        <input
-          type="text"
-          placeholder="Search orders..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-9 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
-        />
-      </div>
-
-      {/* Orders table */}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+      <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-zinc-100 text-left">
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Order</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Customer</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Items</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Date</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Total</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Payment</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Status</th>
+          <table className="w-full text-left text-sm text-zinc-600">
+            <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
+              <tr>
+                <th className="px-6 py-4 font-medium">Order ID</th>
+                <th className="px-6 py-4 font-medium">Customer</th>
+                <th className="px-6 py-4 font-medium">Date</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Total</th>
+                <th className="px-6 py-4 font-medium text-right">Action</th>
               </tr>
             </thead>
-            <tbody>
-              {filtered.length === 0 ? (
+            <tbody className="divide-y divide-zinc-200">
+              {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-zinc-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                    <Package className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
                     No orders found
                   </td>
                 </tr>
               ) : (
-                filtered.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-zinc-50 last:border-0 hover:bg-zinc-50/50 cursor-pointer"
-                  >
-                    <td className="px-5 py-3 text-sm font-medium text-zinc-900">
-                      {order.orderNumber}
+                orders.map((order) => (
+                  <tr key={order._id} className="hover:bg-zinc-50 transition-colors group">
+                    <td className="px-6 py-4 font-mono text-zinc-900">
+                      #{order._id.substring(order._id.length - 8).toUpperCase()}
                     </td>
-                    <td className="px-5 py-3">
-                      <div>
-                        <p className="text-sm text-zinc-900">{order.customer.name}</p>
-                        <p className="text-xs text-zinc-400">{order.customer.email}</p>
-                      </div>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-zinc-900">{order.user?.name || "Unknown"}</div>
+                      <div className="text-xs text-zinc-500">{order.user?.email || "No email"}</div>
                     </td>
-                    <td className="px-5 py-3 text-sm text-zinc-600">
-                      {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                    <td className="px-6 py-4">
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-3 text-sm text-zinc-500">
-                      {formatDate(order.createdAt)}
-                    </td>
-                    <td className="px-5 py-3 text-sm font-medium text-zinc-900">
-                      {formatCurrency(order.total)}
-                    </td>
-                    <td className="px-5 py-3 text-xs text-zinc-500">
-                      {order.paymentMethod}
-                    </td>
-                    <td className="px-5 py-3">
-                      <span
+                    <td className="px-6 py-4">
+                      <select
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
                         className={cn(
-                          "inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-                          statusColors[order.status]
+                          "rounded-full px-2 py-1 text-xs font-medium outline-none cursor-pointer border-0",
+                          order.status === 'Processing' ? 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20' :
+                          order.status === 'Shipped' ? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20' :
+                          order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' : 
+                          'bg-zinc-50 text-zinc-700 ring-1 ring-inset ring-zinc-600/20'
                         )}
                       >
-                        {order.status}
-                      </span>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-zinc-900">
+                      {formatCurrency(order.totalPrice)}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-blue-600 hover:text-blue-800 font-medium flex items-center justify-end gap-1 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        View <ChevronRight className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))

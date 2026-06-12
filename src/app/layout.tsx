@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -17,8 +19,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://rfidhub.com"),
   title: {
-    default: "RFIDHub — Enterprise RFID Solutions",
-    template: "%s | RFIDHub",
+    default: "Virtualsphere — Enterprise RFID Solutions",
+    template: "%s | Virtualsphere",
   },
   description:
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
@@ -31,18 +33,18 @@ export const metadata: Metadata = {
     "supply chain",
     "UHF RFID",
   ],
-  authors: [{ name: "RFIDHub" }],
+  authors: [{ name: "Virtualsphere" }],
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "RFIDHub",
-    title: "RFIDHub — Enterprise RFID Solutions",
+    siteName: "Virtualsphere",
+    title: "Virtualsphere — Enterprise RFID Solutions",
     description:
       "Professional RFID products and inventory management solutions for modern enterprises.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "RFIDHub — Enterprise RFID Solutions",
+    title: "Virtualsphere — Enterprise RFID Solutions",
     description:
       "Professional RFID products and inventory management solutions for modern enterprises.",
   },
@@ -69,7 +71,13 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AuthProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

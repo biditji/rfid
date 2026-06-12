@@ -1,13 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Package } from "lucide-react";
 import { FadeIn } from "@/components/shared/fade-in";
-import { getFeaturedProducts } from "@/data/products";
-import { formatCurrency, getStockStatus } from "@/lib/utils";
+import { fetchProducts } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 
 export function FeaturedProducts() {
-  const products = getFeaturedProducts();
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchProducts();
+        // Grab top 3 items to feature
+        setProducts(data.slice(0, 3));
+      } catch (err) {
+        console.error("Failed to fetch products", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   return (
     <section className="border-t border-zinc-100 bg-zinc-50 py-20 lg:py-24">
@@ -19,7 +36,7 @@ export function FeaturedProducts() {
                 Featured products
               </h2>
               <p className="mt-2 text-zinc-500">
-                Our most popular RFID hardware, ready to ship.
+                Our most popular hardware, directly from the catalog.
               </p>
             </div>
             <Link
@@ -33,67 +50,50 @@ export function FeaturedProducts() {
         </FadeIn>
 
         <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product, idx) => {
-            const stock = getStockStatus(product.stock);
+          {loading ? (
+             [1, 2, 3].map((i) => (
+                <div key={i} className="h-72 rounded-xl bg-zinc-200 animate-pulse" />
+             ))
+          ) : products.map((product, idx) => {
+            const isInstock = product.stock > 0;
+            const stockColor = isInstock ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600";
+            const imageUrl = product.images?.[0] ? `http://localhost:5000${product.images[0]}` : null;
+
             return (
-              <FadeIn key={product.id} delay={idx * 0.05}>
+              <FadeIn key={product._id} delay={idx * 0.05}>
                 <Link
                   href={`/products/${product.slug}`}
-                  className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
+                  className="group flex flex-col h-full overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
                 >
-                  {/* Image placeholder */}
-                  <div className="relative aspect-[3/2] bg-zinc-100 p-6">
-                    <div className="flex h-full items-center justify-center">
-                      <div className="text-center">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-200/50">
-                          <span className="text-lg font-bold text-zinc-400">
-                            {product.category.charAt(5)}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs text-zinc-400">
-                          {product.category}
-                        </p>
+                  <div className="relative aspect-[3/2] bg-zinc-50 border-b border-zinc-100 flex items-center justify-center">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-zinc-300">
+                        <Package className="h-10 w-10 mb-2" />
+                        <span className="text-xs font-medium uppercase tracking-wider">{product.category?.name || "Product"}</span>
                       </div>
-                    </div>
-                    {product.compareAtPrice && (
-                      <span className="absolute left-3 top-3 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        Sale
-                      </span>
                     )}
                   </div>
 
-                  {/* Content */}
-                  <div className="flex flex-1 flex-col p-4">
+                  <div className="flex flex-1 flex-col p-5">
                     <span className="text-xs font-medium text-zinc-400">
                       {product.sku}
                     </span>
-                    <h3 className="mt-1 text-sm font-semibold leading-snug text-zinc-900 group-hover:text-zinc-700 line-clamp-2">
+                    <h3 className="mt-1.5 text-base font-semibold leading-snug text-zinc-900 group-hover:text-zinc-700 line-clamp-2">
                       {product.name}
                     </h3>
-                    <p className="mt-1.5 text-xs text-zinc-500 line-clamp-2">
-                      {product.shortDescription}
+                    <p className="mt-2 text-sm text-zinc-500 line-clamp-2 flex-1">
+                      {product.description}
                     </p>
-                    <div className="mt-auto flex items-center justify-between pt-4">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-base font-bold text-zinc-900">
-                          {formatCurrency(product.price)}
-                        </span>
-                        {product.compareAtPrice && (
-                          <span className="text-xs text-zinc-400 line-through">
-                            {formatCurrency(product.compareAtPrice)}
-                          </span>
-                        )}
-                      </div>
+                    <div className="mt-5 flex items-center justify-between pt-4 border-t border-zinc-100">
+                      <span className="text-lg font-bold text-zinc-900">
+                        {formatCurrency(product.price)}
+                      </span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          stock.color === "emerald"
-                            ? "bg-emerald-50 text-emerald-600"
-                            : stock.color === "amber"
-                              ? "bg-amber-50 text-amber-600"
-                              : "bg-red-50 text-red-600"
-                        }`}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${stockColor}`}
                       >
-                        {stock.label}
+                        {isInstock ? "In Stock" : "Out of Stock"}
                       </span>
                     </div>
                   </div>

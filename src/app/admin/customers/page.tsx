@@ -1,108 +1,109 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Mail } from "lucide-react";
-import { customers } from "@/data/customers";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { fetchCustomers } from "@/lib/api";
+import { Search, UserCircle2, Mail, Calendar, DollarSign } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
-export default function CustomersPage() {
-  const [search, setSearch] = useState("");
+export default function AdminCustomersPage() {
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase()) ||
-      (c.company && c.company.toLowerCase().includes(search.toLowerCase()))
-  );
+  useEffect(() => {
+    async function loadCustomers() {
+      try {
+        const token = localStorage.getItem("rfid_token");
+        if (token) {
+          const data = await fetchCustomers(token);
+          setCustomers(data);
+        }
+      } catch (error) {
+        console.error("Failed to load customers", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCustomers();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-zinc-900">Customers</h1>
-        <p className="text-sm text-zinc-500">
-          {customers.length} registered customers
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Customers (Live)</h1>
+          <p className="text-sm text-zinc-500">Manage your active users from the MongoDB database.</p>
+        </div>
+        
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search customers..."
+            className="h-9 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-zinc-300 focus:ring-2 focus:ring-zinc-100"
+          />
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-        <input
-          type="text"
-          placeholder="Search by name, email, or company..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-9 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
-        />
-      </div>
-
-      {/* Customers table */}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+      <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-zinc-100 text-left">
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Customer</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Company</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Orders</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Total Spent</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Joined</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">Last Order</th>
-                <th className="px-5 py-3 text-xs font-medium text-zinc-500">
-                  <span className="sr-only">Actions</span>
-                </th>
+          <table className="w-full text-left text-sm text-zinc-600">
+            <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
+              <tr>
+                <th className="px-6 py-4 font-medium">Customer Info</th>
+                <th className="px-6 py-4 font-medium">Joined Date</th>
+                <th className="px-6 py-4 font-medium text-center">Orders Placed</th>
+                <th className="px-6 py-4 font-medium text-right">Total Spent</th>
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((customer) => (
-                <tr
-                  key={customer.id}
-                  className="border-b border-zinc-50 last:border-0 hover:bg-zinc-50/50"
-                >
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-500">
-                        {customer.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-zinc-900">
-                          {customer.name}
-                        </p>
-                        <p className="text-xs text-zinc-400">{customer.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-zinc-600">
-                    {customer.company || "—"}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-zinc-600">
-                    {customer.totalOrders}
-                  </td>
-                  <td className="px-5 py-3 text-sm font-medium text-zinc-900">
-                    {formatCurrency(customer.totalSpent)}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-zinc-500">
-                    {formatDate(customer.joinedAt)}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-zinc-500">
-                    {customer.lastOrderAt
-                      ? formatDate(customer.lastOrderAt)
-                      : "—"}
-                  </td>
-                  <td className="px-5 py-3">
-                    <button
-                      type="button"
-                      className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                      aria-label={`Email ${customer.name}`}
-                    >
-                      <Mail className="h-3.5 w-3.5" />
-                    </button>
+            <tbody className="divide-y divide-zinc-200">
+              {customers.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-zinc-500">
+                    <UserCircle2 className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
+                    No customers found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                customers.map((user) => (
+                  <tr key={user._id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-medium text-zinc-900">{user.name}</div>
+                          <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
+                            <Mail className="h-3 w-3" /> {user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5 text-zinc-600">
+                        <Calendar className="h-4 w-4 text-zinc-400" />
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center font-medium">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-xs text-zinc-700">
+                        {user.ordersCount}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-medium text-zinc-900">
+                      {formatCurrency(user.totalSpent)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

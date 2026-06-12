@@ -37,7 +37,7 @@ export function WhySection() {
         <FadeIn>
           <div className="max-w-2xl">
             <h2 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-              Why companies choose RFIDHub
+              Why companies choose Virtualsphere
             </h2>
             <p className="mt-3 text-zinc-500">
               We&apos;re not a marketplace. We&apos;re a focused RFID supplier with

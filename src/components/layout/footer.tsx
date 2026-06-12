@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Radio, Mail, Phone, MapPin } from "lucide-react";
+import { Globe, Mail, Phone, MapPin } from "lucide-react";
 import { SITE_CONFIG, NAV_ITEMS } from "@/lib/constants";
 
 export function Footer() {
@@ -9,13 +9,8 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
-                <Radio className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-lg font-semibold tracking-tight text-zinc-900">
-                RFIDHub
-              </span>
+            <Link href="/" className="flex items-center">
+              <img src="/logo.png" alt="Virtualsphere Technologies" className="h-8 object-contain" />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-zinc-500">
               Professional RFID products and inventory management solutions for
@@ -105,7 +100,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-zinc-200 pt-8 sm:flex-row">
           <p className="text-sm text-zinc-400">
-            © {new Date().getFullYear()} RFIDHub. All rights reserved.
+            © {new Date().getFullYear()} Virtualsphere. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link

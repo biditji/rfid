@@ -3,8 +3,6 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { products } from "@/data/products";
-import { categories } from "@/data/categories";
 import { formatCurrency, getStockStatus, cn } from "@/lib/utils";
 import { FadeIn } from "@/components/shared/fade-in";
 
@@ -15,14 +13,14 @@ const sortOptions = [
   { label: "Name: A → Z", value: "name-asc" },
 ];
 
-export function ProductsContent() {
+export function ProductsContent({ products = [], categories = [] }: { products?: any[], categories?: any[] }) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
-    let result = [...products].filter((p) => p.isActive);
+    let result = [...products];
 
     if (search) {
       const q = search.toLowerCase();
@@ -36,7 +34,8 @@ export function ProductsContent() {
     }
 
     if (selectedCategory) {
-      result = result.filter((p) => p.category === selectedCategory);
+      // Handle both populated category object { name: '...' } and string ID
+      result = result.filter((p) => p.category?.name === selectedCategory || p.category === selectedCategory);
     }
 
     switch (sortBy) {
@@ -152,7 +151,7 @@ export function ProductsContent() {
                 >
                   {cat.name}
                   <span className="text-xs text-zinc-400">
-                    {cat.productCount}
+                    
                   </span>
                 </button>
               ))}
@@ -215,19 +214,27 @@ export function ProductsContent() {
                       href={`/products/${product.slug}`}
                       className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
                     >
-                      <div className="relative aspect-[3/2] bg-zinc-100 p-6">
-                        <div className="flex h-full items-center justify-center">
-                          <div className="text-center">
-                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-200/60">
-                              <span className="text-lg font-bold text-zinc-400">
-                                {product.name.charAt(0)}
-                              </span>
+                      <div className="relative aspect-[3/2] bg-zinc-100 overflow-hidden">
+                        {product.images && product.images.length > 0 ? (
+                          <img
+                            src={`http://localhost:5000${product.images[0]}`}
+                            alt={product.name}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center p-6">
+                            <div className="text-center">
+                              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-200/60">
+                                <span className="text-lg font-bold text-zinc-400">
+                                  {product.name.charAt(0)}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-xs text-zinc-400">
+                                {product.category?.name || "Uncategorized"}
+                              </p>
                             </div>
-                            <p className="mt-2 text-xs text-zinc-400">
-                              {product.category}
-                            </p>
                           </div>
-                        </div>
+                        )}
                         {product.compareAtPrice && (
                           <span className="absolute left-3 top-3 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                             Sale
@@ -248,7 +255,7 @@ export function ProductsContent() {
                           {product.name}
                         </h3>
                         <p className="mt-1.5 text-xs text-zinc-500 line-clamp-2">
-                          {product.shortDescription}
+                          {product.description}
                         </p>
                         <div className="mt-auto flex items-center justify-between pt-4">
                           <div className="flex items-baseline gap-1.5">
