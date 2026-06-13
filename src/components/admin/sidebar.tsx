@@ -17,6 +17,7 @@ import {
   PanelLeft,
   Bell,
   ChevronRight,
+  FolderTree,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Users,
   Search,
   Settings,
+  FolderTree,
 };
 
 const navGroups = [
@@ -42,6 +44,7 @@ const navGroups = [
   {
     label: "Commerce",
     items: [
+      { label: "Categories", href: "/admin/categories", icon: "FolderTree" },
       { label: "Products", href: "/admin/products", icon: "Package" },
       { label: "Orders", href: "/admin/orders", icon: "ShoppingCart" },
       { label: "Inventory", href: "/admin/inventory", icon: "Warehouse" },

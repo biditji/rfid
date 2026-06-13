@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchCategories, createProduct, uploadImage } from "@/lib/api";
+import { fetchCategories, fetchProductById, updateProduct, uploadImage } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,12 +21,14 @@ import { cn } from "@/lib/utils";
 const TABS = ["General", "Data", "Links", "Image", "SEO"] as const;
 type Tab = (typeof TABS)[number];
 
-export default function NewProductPage() {
+export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { user, loading } = useAuth();
 
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("General");
@@ -69,6 +71,7 @@ export default function NewProductPage() {
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [existingImage, setExistingImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -77,11 +80,71 @@ export default function NewProductPage() {
     }
 
     const loadData = async () => {
-      const cats = await fetchCategories();
-      setCategories(cats);
+      try {
+        const [cats, product] = await Promise.all([
+          fetchCategories(),
+          fetchProductById(id),
+        ]);
+        setCategories(cats);
+
+        if (!product) {
+          setError("Product not found");
+          return;
+        }
+
+        setFormData({
+          // General
+          name: product.name || "",
+          description: product.description || "",
+          metaTitle: product.metaTitle || "",
+          metaDescription: product.metaDescription || "",
+          metaKeywords: product.metaKeywords || "",
+          productTags: product.productTags || "",
+          // Data
+          model: product.model || "",
+          sku: product.sku || "",
+          upc: product.upc || "",
+          ean: product.ean || "",
+          jan: product.jan || "",
+          isbn: product.isbn || "",
+          mpn: product.mpn || "",
+          price: String(product.price ?? ""),
+          taxClass: product.taxClass || "none",
+          stock: String(product.stock ?? 100),
+          minimumQuantity: String(product.minimumQuantity ?? 1),
+          subtractStock: String(product.subtractStock ?? true),
+          outOfStockStatus: product.outOfStockStatus || "Out Of Stock",
+          dateAvailable: product.dateAvailable ? new Date(product.dateAvailable).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          dimensions: { 
+            length: product.dimensions?.length || "", 
+            width: product.dimensions?.width || "", 
+            height: product.dimensions?.height || "" 
+          },
+          lengthClass: product.lengthClass || "Centimeter",
+          weight: String(product.weight ?? ""),
+          weightClass: product.weightClass || "Kilogram",
+          status: String(product.status ?? true),
+          sortOrder: String(product.sortOrder ?? 0),
+          // Links
+          category: product.category?._id || product.category || "",
+          // SEO
+          slug: product.slug || "",
+        });
+
+        if (product.images && product.images.length > 0) {
+          setExistingImage(product.images[0]);
+          setImagePreview(`http://localhost:5000${product.images[0]}`);
+        }
+      } catch (err) {
+        console.error("Failed to load product data", err);
+        setError("Failed to load product");
+      } finally {
+        setPageLoading(false);
+      }
     };
+
     if (!loading) loadData();
-  }, [user, loading, router]);
+  }, [user, loading, router, id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -108,9 +171,13 @@ export default function NewProductPage() {
       const token = localStorage.getItem("rfid_token") || "";
 
       let imageUrls: string[] = [];
+      if (existingImage) {
+        imageUrls.push(existingImage);
+      }
+
       if (selectedImage) {
         const imagePath = await uploadImage(selectedImage, token);
-        imageUrls.push(imagePath);
+        imageUrls = [imagePath]; // Replace main image
       }
 
       const payload = {
@@ -150,21 +217,21 @@ export default function NewProductPage() {
         slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""),
       };
 
-      await createProduct(payload, token);
+      await updateProduct(id, payload, token);
 
-      setSuccess("Product created successfully!");
+      setSuccess("Product updated successfully!");
       setTimeout(() => router.push("/admin/products"), 1500);
     } catch (err: any) {
-      setError(err.message || "Failed to create product");
+      setError(err.message || "Failed to update product");
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (loading)
+  if (loading || pageLoading)
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-blue-600" />
       </div>
     );
 
@@ -173,8 +240,8 @@ export default function NewProductPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Add Product</h1>
-          <p className="text-sm text-zinc-500">Create a new product.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Edit Product</h1>
+          <p className="text-sm text-zinc-500">Update product details.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -629,6 +696,7 @@ export default function NewProductPage() {
                         onClick={() => {
                           setSelectedImage(null);
                           setImagePreview(null);
+                          setExistingImage(null);
                         }}
                         className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
                       >
@@ -656,6 +724,7 @@ export default function NewProductPage() {
                           if (e.target.files && e.target.files[0]) {
                             setSelectedImage(e.target.files[0]);
                             setImagePreview(URL.createObjectURL(e.target.files[0]));
+                            setExistingImage(null);
                           }
                         }}
                       />

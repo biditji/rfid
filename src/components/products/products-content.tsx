@@ -27,9 +27,9 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.shortDescription.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
           p.sku.toLowerCase().includes(q) ||
-          p.tags.some((t) => t.includes(q))
+          (p.productTags && p.productTags.toLowerCase().includes(q))
       );
     }
 

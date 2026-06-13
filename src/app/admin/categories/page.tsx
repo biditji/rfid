@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { fetchProducts, deleteProduct, deleteProductsBulk } from "@/lib/api";
-import { formatCurrency, cn } from "@/lib/utils";
+import { fetchCategories, deleteCategory, deleteCategoriesBulk, uploadImage } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import {
-  Package,
+  Search,
+  FolderTree,
   Edit,
   Trash2,
   Plus,
@@ -22,8 +23,8 @@ import { Button } from "@/components/ui/button";
 
 const ITEMS_PER_PAGE = 10;
 
-export default function AdminProductsPage() {
-  const [products, setProducts] = useState<any[]>([]);
+export default function AdminCategoriesPage() {
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -31,54 +32,46 @@ export default function AdminProductsPage() {
 
   // Filter state
   const [filterName, setFilterName] = useState("");
-  const [filterModel, setFilterModel] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [appliedFilters, setAppliedFilters] = useState<{ name?: string; model?: string; status?: string }>({});
+  const [appliedFilters, setAppliedFilters] = useState<{ name?: string; status?: string }>({});
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  const loadProducts = useCallback(async () => {
+  const loadCategories = useCallback(async () => {
     setLoading(true);
     try {
-      // Temporary workaround until fetchProducts supports query params, or fetch all and filter in frontend for now
-      // Let's filter in frontend if fetchProducts doesn't accept params yet
-      const data = await fetchProducts();
-      
-      let filtered = data;
-      if (appliedFilters.name) {
-        filtered = filtered.filter((p: any) => p.name.toLowerCase().includes(appliedFilters.name!.toLowerCase()));
-      }
-      if (appliedFilters.model) {
-        filtered = filtered.filter((p: any) => p.model?.toLowerCase().includes(appliedFilters.model!.toLowerCase()));
-      }
-      if (appliedFilters.status !== undefined && appliedFilters.status !== "") {
-        const statusBool = appliedFilters.status === "true";
-        filtered = filtered.filter((p: any) => p.status === statusBool);
-      }
-      
-      setProducts(filtered);
+      const data = await fetchCategories(appliedFilters);
+      setCategories(data);
     } catch (err) {
-      console.error("Failed to load products", err);
+      console.error("Failed to load categories", err);
     } finally {
       setLoading(false);
     }
   }, [appliedFilters]);
 
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    loadCategories();
+  }, [loadCategories]);
+
+  // Build display name showing parent hierarchy
+  const getDisplayName = (cat: any) => {
+    if (cat.parent && cat.parent.name) {
+      return `${cat.parent.name} > ${cat.name}`;
+    }
+    return cat.name;
+  };
 
   // Pagination logic
-  const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE));
-  const paginatedProducts = products.slice(
+  const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
+  const paginatedCategories = categories.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(paginatedProducts.map((p) => p._id));
+      setSelectedIds(paginatedCategories.map((c) => c._id));
     } else {
       setSelectedIds([]);
     }
@@ -93,50 +86,49 @@ export default function AdminProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+    if (!confirm("Are you sure you want to delete this category?")) return;
     setError("");
     setSuccess("");
     try {
       const token = localStorage.getItem("rfid_token") || "";
-      await deleteProduct(id, token);
-      setSuccess("Product deleted successfully.");
+      await deleteCategory(id, token);
+      setSuccess("Category deleted successfully.");
       setSelectedIds((prev) => prev.filter((i) => i !== id));
-      loadProducts();
+      loadCategories();
     } catch (err: any) {
-      setError(err.message || "Failed to delete product");
+      setError(err.message || "Failed to delete category");
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedIds.length} product(s)?`)) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} category(ies)?`)) return;
     setError("");
     setSuccess("");
     try {
       const token = localStorage.getItem("rfid_token") || "";
-      await deleteProductsBulk(selectedIds, token);
-      setSuccess(`${selectedIds.length} product(s) deleted.`);
+      await deleteCategoriesBulk(selectedIds, token);
+      setSuccess(`${selectedIds.length} category(ies) deleted.`);
       setSelectedIds([]);
-      loadProducts();
+      loadCategories();
     } catch (err: any) {
-      setError(err.message || "Failed to delete products");
+      setError(err.message || "Failed to delete categories");
     }
   };
 
   const handleApplyFilter = () => {
-    setAppliedFilters({ name: filterName, model: filterModel, status: filterStatus });
+    setAppliedFilters({ name: filterName, status: filterStatus });
     setCurrentPage(1);
   };
 
   const handleClearFilter = () => {
     setFilterName("");
-    setFilterModel("");
     setFilterStatus("");
     setAppliedFilters({});
     setCurrentPage(1);
   };
 
-  if (loading && products.length === 0) {
+  if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-blue-600" />
@@ -149,24 +141,24 @@ export default function AdminProductsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Products</h1>
-          <p className="text-sm text-zinc-500">Manage your product listings and inventory.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Categories</h1>
+          <p className="text-sm text-zinc-500">Manage your product categories and subcategories.</p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => loadProducts()}
+            onClick={() => loadCategories()}
             className="gap-1.5"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          <Link href="/admin/products/new">
+          <Link href="/admin/categories/new">
             <Button className="bg-slate-900 text-white hover:bg-slate-800 gap-1.5">
               <Plus className="h-4 w-4" />
-              Add Product
+              Add Category
             </Button>
           </Link>
           {selectedIds.length > 0 && (
@@ -201,51 +193,53 @@ export default function AdminProductsPage() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
-        {/* Product List Table */}
-        <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden flex flex-col">
+        {/* Category List Table */}
+        <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
           <div className="border-b border-zinc-100 px-5 py-3 flex items-center gap-2">
-            <Package className="h-4 w-4 text-zinc-500" />
-            <h2 className="text-sm font-semibold text-zinc-900">Product List</h2>
+            <FolderTree className="h-4 w-4 text-zinc-500" />
+            <h2 className="text-sm font-semibold text-zinc-900">Category List</h2>
           </div>
-          <div className="overflow-x-auto flex-1">
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-zinc-600">
               <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
                 <tr>
                   <th className="px-4 py-3 w-10">
                     <input
                       type="checkbox"
-                      checked={paginatedProducts.length > 0 && paginatedProducts.every((p) => selectedIds.includes(p._id))}
+                      checked={paginatedCategories.length > 0 && paginatedCategories.every((c) => selectedIds.includes(c._id))}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="h-4 w-4 rounded border-zinc-300"
                     />
                   </th>
                   <th className="px-4 py-3 font-medium w-16">Image</th>
-                  <th className="px-4 py-3 font-medium">Product Name</th>
-                  <th className="px-4 py-3 font-medium">Model</th>
-                  <th className="px-4 py-3 font-medium">Price</th>
-                  <th className="px-4 py-3 font-medium text-center">Quantity</th>
-                  <th className="px-4 py-3 font-medium text-center">Status</th>
-                  <th className="px-4 py-3 font-medium text-right w-24">Action</th>
+                  <th className="px-4 py-3 font-medium">Category Name</th>
+                  <th className="px-4 py-3 font-medium text-center w-24">Sort Order</th>
+                  <th className="px-4 py-3 font-medium text-center w-24">Status</th>
+                  <th className="px-4 py-3 font-medium text-center w-24">Products</th>
+                  <th className="px-4 py-3 font-medium text-center w-28">Subcategories</th>
+                  <th className="px-4 py-3 font-medium text-right w-32">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {paginatedProducts.length === 0 ? (
+                {paginatedCategories.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center text-zinc-500">
-                      <Package className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
-                      No products found. Click "Add Product" to create one.
+                      <FolderTree className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
+                      No categories found. Click &quot;Add Category&quot; to create one.
                     </td>
                   </tr>
                 ) : (
-                  paginatedProducts.map((product) => {
-                    const imageUrl = product.images?.[0] ? `http://localhost:5000${product.images[0]}` : null;
+                  paginatedCategories.map((cat) => {
+                    const imageUrl = cat.image
+                      ? `http://localhost:5000${cat.image}`
+                      : null;
                     return (
-                      <tr key={product._id} className="hover:bg-zinc-50 transition-colors">
+                      <tr key={cat._id} className="hover:bg-zinc-50 transition-colors">
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
-                            checked={selectedIds.includes(product._id)}
-                            onChange={(e) => handleSelectOne(product._id, e.target.checked)}
+                            checked={selectedIds.includes(cat._id)}
+                            onChange={(e) => handleSelectOne(cat._id, e.target.checked)}
                             className="h-4 w-4 rounded border-zinc-300"
                           />
                         </td>
@@ -253,8 +247,8 @@ export default function AdminProductsPage() {
                           {imageUrl ? (
                             <img
                               src={imageUrl}
-                              alt={product.name}
-                              className="h-10 w-10 rounded-md object-cover border border-zinc-200 bg-white"
+                              alt={cat.name}
+                              className="h-10 w-10 rounded-md object-cover border border-zinc-200"
                             />
                           ) : (
                             <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center border border-zinc-200">
@@ -262,49 +256,50 @@ export default function AdminProductsPage() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-zinc-900">{product.name}</div>
-                          <div className="text-xs text-zinc-500 mt-0.5">{product.category?.name || "Uncategorized"}</div>
+                        <td className="px-4 py-3 font-medium text-zinc-900">
+                          {getDisplayName(cat)}
                         </td>
-                        <td className="px-4 py-3 text-zinc-700">{product.model || product.sku}</td>
-                        <td className="px-4 py-3 font-medium text-zinc-900">{formatCurrency(product.price)}</td>
+                        <td className="px-4 py-3 text-center text-zinc-600">{cat.sortOrder}</td>
                         <td className="px-4 py-3 text-center">
                           <span
                             className={cn(
                               "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                              product.stock > 10
+                              cat.status
                                 ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
-                                : product.stock > 0
-                                ? "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
                                 : "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20"
                             )}
                           >
-                            {product.stock}
+                            {cat.status ? "Enabled" : "Disabled"}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-center text-zinc-600">
+                          {cat.productCount ?? 0}
+                        </td>
                         <td className="px-4 py-3 text-center">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                              product.status !== false
-                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
-                                : "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20"
-                            )}
-                          >
-                            {product.status !== false ? "Enabled" : "Disabled"}
-                          </span>
+                          {(cat.subcategoryCount ?? 0) > 0 ? (
+                            <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                              {cat.subcategoryCount}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-400">0</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            <Link href={`/admin/products/${product._id}`}>
-                              <button className="p-1.5 rounded-md text-white bg-blue-500 hover:bg-blue-600 transition-colors" title="Edit">
+                            <Link href={`/admin/categories/new?parent=${cat._id}`} title="Add Subcategory">
+                              <button className="p-1.5 rounded-md text-white bg-emerald-500 hover:bg-emerald-600 transition-colors">
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </Link>
+                            <Link href={`/admin/categories/${cat._id}`} title="Edit">
+                              <button className="p-1.5 rounded-md text-white bg-blue-500 hover:bg-blue-600 transition-colors">
                                 <Edit className="h-4 w-4" />
                               </button>
                             </Link>
                             <button
-                              onClick={() => handleDelete(product._id)}
-                              className="p-1.5 rounded-md text-zinc-400 hover:text-red-600 transition-colors"
+                              onClick={() => handleDelete(cat._id)}
                               title="Delete"
+                              className="p-1.5 rounded-md text-zinc-400 hover:text-red-600 transition-colors"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -320,7 +315,7 @@ export default function AdminProductsPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-200 px-5 py-3 mt-auto">
+            <div className="flex items-center justify-between border-t border-zinc-200 px-5 py-3">
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setCurrentPage(1)}
@@ -367,7 +362,7 @@ export default function AdminProductsPage() {
               </div>
               <p className="text-xs text-zinc-500">
                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
-                {Math.min(currentPage * ITEMS_PER_PAGE, products.length)} of {products.length} ({totalPages} Pages)
+                {Math.min(currentPage * ITEMS_PER_PAGE, categories.length)} of {categories.length} ({totalPages} Pages)
               </p>
             </div>
           )}
@@ -381,22 +376,12 @@ export default function AdminProductsPage() {
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Product Name</label>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Category Name</label>
               <input
                 type="text"
                 value={filterName}
                 onChange={(e) => setFilterName(e.target.value)}
-                placeholder="Product Name"
-                className="w-full h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-300 focus:ring-2 focus:ring-zinc-100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Model</label>
-              <input
-                type="text"
-                value={filterModel}
-                onChange={(e) => setFilterModel(e.target.value)}
-                placeholder="Model"
+                placeholder="Category Name"
                 className="w-full h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-zinc-300 focus:ring-2 focus:ring-zinc-100"
               />
             </div>

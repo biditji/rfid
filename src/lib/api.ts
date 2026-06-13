@@ -34,15 +34,98 @@ export async function fetchProductBySlug(slug: string) {
   }
 }
 
-export async function fetchCategories() {
+export async function fetchCategories(filters?: { name?: string; status?: string }) {
   try {
-    const res = await fetch(`${API_URL}/categories`, { cache: 'no-store' });
+    const params = new URLSearchParams();
+    if (filters?.name) params.set('name', filters.name);
+    if (filters?.status !== undefined && filters?.status !== '') params.set('status', filters.status);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_URL}/categories${query}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
     return await res.json();
   } catch (error) {
     console.error('Error fetching categories:', error);
     return [];
   }
+}
+
+export async function fetchCategoryById(id: string) {
+  const res = await fetch(`${API_URL}/categories/${id}`, { cache: 'no-store' });
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`Failed to fetch category: ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function createCategory(data: any, token: string) {
+  const res = await fetch(`${API_URL}/categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Failed to create category');
+  }
+  
+  return await res.json();
+}
+
+export async function updateCategory(id: string, data: any, token: string) {
+  const res = await fetch(`${API_URL}/categories/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Failed to update category');
+  }
+  
+  return await res.json();
+}
+
+export async function deleteCategory(id: string, token: string) {
+  const res = await fetch(`${API_URL}/categories/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Failed to delete category');
+  }
+  
+  return await res.json();
+}
+
+export async function deleteCategoriesBulk(ids: string[], token: string) {
+  const res = await fetch(`${API_URL}/categories`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ids }),
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Failed to delete categories');
+  }
+  
+  return await res.json();
 }
 
 export async function createProduct(data: any, token: string) {
@@ -63,9 +146,18 @@ export async function createProduct(data: any, token: string) {
   return await res.json();
 }
 
-export async function createCategory(data: any, token: string) {
-  const res = await fetch(`${API_URL}/categories`, {
-    method: 'POST',
+export async function fetchProductById(id: string) {
+  const res = await fetch(`${API_URL}/products/${id}`, { cache: 'no-store' });
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`Failed to fetch product: ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function updateProduct(id: string, data: any, token: string) {
+  const res = await fetch(`${API_URL}/products/${id}`, {
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -75,7 +167,41 @@ export async function createCategory(data: any, token: string) {
   
   if (!res.ok) {
     const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to create category');
+    throw new Error(errorData.message || 'Failed to update product');
+  }
+  
+  return await res.json();
+}
+
+export async function deleteProduct(id: string, token: string) {
+  const res = await fetch(`${API_URL}/products/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Failed to delete product');
+  }
+  
+  return await res.json();
+}
+
+export async function deleteProductsBulk(ids: string[], token: string) {
+  const res = await fetch(`${API_URL}/products`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ids }),
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || 'Failed to delete products');
   }
   
   return await res.json();

@@ -81,11 +81,9 @@ export function Header() {
           
           {!loading && user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="ml-2 flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
-                  <UserIcon className="h-4 w-4" />
-                  <span className="max-w-[100px] truncate">{user.name}</span>
-                </button>
+              <DropdownMenuTrigger className="ml-2 flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 outline-none">
+                <UserIcon className="h-4 w-4" />
+                <span className="max-w-[100px] truncate">{user.name}</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-white">
                 <div className="flex items-center justify-start gap-2 p-2">
@@ -97,14 +95,18 @@ export function Header() {
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/profile">My Profile</Link>
-                </DropdownMenuItem>
+                <Link href="/profile" className="w-full">
+                  <DropdownMenuItem className="cursor-pointer">
+                    My Profile
+                  </DropdownMenuItem>
+                </Link>
                 {user.role === 'admin' && (
                   <>
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link href="/admin">Admin Dashboard</Link>
-                    </DropdownMenuItem>
+                    <Link href="/admin" className="w-full">
+                      <DropdownMenuItem className="cursor-pointer">
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuSeparator />
                   </>
                 )}
