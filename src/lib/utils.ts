@@ -52,3 +52,10 @@ export function getStockStatus(stock: number): {
   if (stock <= 10) return { label: "Low Stock", color: "amber" };
   return { label: "In Stock", color: "emerald" };
 }
+
+export function getServerUrl(path: string): string {
+  if (!path) return "/placeholder.png";
+  if (path.startsWith('http')) return path;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+}

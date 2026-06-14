@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { formatCurrency, getStockStatus, cn } from "@/lib/utils";
+import { formatCurrency, getStockStatus, cn, getServerUrl } from "@/lib/utils";
 import { FadeIn } from "@/components/shared/fade-in";
 
 const sortOptions = [
@@ -56,7 +56,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
     }
 
     return result;
-  }, [search, selectedCategory, sortBy]);
+  }, [products, search, selectedCategory, sortBy]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -209,7 +209,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
               {filtered.map((product, idx) => {
                 const stock = getStockStatus(product.stock);
                 return (
-                  <FadeIn key={product.id} delay={Math.min(idx * 0.03, 0.3)}>
+                  <FadeIn key={product._id || product.id || idx} delay={Math.min(idx * 0.03, 0.3)}>
                     <Link
                       href={`/products/${product.slug}`}
                       className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
@@ -217,7 +217,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
                       <div className="relative aspect-[3/2] bg-zinc-100 overflow-hidden">
                         {product.images && product.images.length > 0 ? (
                           <img
-                            src={`http://localhost:5000${product.images[0]}`}
+                            src={getServerUrl(product.images[0])}
                             alt={product.name}
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />

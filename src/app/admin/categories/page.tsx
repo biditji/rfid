@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { fetchCategories, deleteCategory, deleteCategoriesBulk, uploadImage } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, getServerUrl } from "@/lib/utils";
 import {
   Search,
   FolderTree,
@@ -231,7 +231,7 @@ export default function AdminCategoriesPage() {
                 ) : (
                   paginatedCategories.map((cat) => {
                     const imageUrl = cat.image
-                      ? `http://localhost:5000${cat.image}`
+                      ? getServerUrl(cat.image)
                       : null;
                     return (
                       <tr key={cat._id} className="hover:bg-zinc-50 transition-colors">

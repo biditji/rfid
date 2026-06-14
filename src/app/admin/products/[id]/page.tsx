@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Save, Undo2, UploadCloud, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getServerUrl } from "@/lib/utils";
 
 const TABS = ["General", "Data", "Links", "Image", "SEO"] as const;
 type Tab = (typeof TABS)[number];
@@ -133,7 +133,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
         if (product.images && product.images.length > 0) {
           setExistingImage(product.images[0]);
-          setImagePreview(`http://localhost:5000${product.images[0]}`);
+          setImagePreview(getServerUrl(product.images[0]));
         }
       } catch (err) {
         console.error("Failed to load product data", err);

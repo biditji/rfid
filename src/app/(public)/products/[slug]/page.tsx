@@ -1,7 +1,7 @@
 import { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchProductBySlug } from "@/lib/api";
-import { formatCurrency, getStockStatus, cn } from "@/lib/utils";
+import { formatCurrency, getStockStatus, cn, getServerUrl } from "@/lib/utils";
 import { ShoppingCart, Package, ShieldCheck, Truck } from "lucide-react";
 import { AddToCartButton } from "@/components/products/add-to-cart-button";
 
@@ -32,7 +32,7 @@ export async function generateMetadata(
     openGraph: {
       title,
       description,
-      images: product.images?.[0] ? [{ url: `http://localhost:5000${product.images[0]}` }] : [],
+      images: product.images?.[0] ? [{ url: getServerUrl(product.images[0]) }] : [],
     },
   };
 }
@@ -49,7 +49,7 @@ export default async function ProductPage({ params }: Props) {
   const stockStatus = getStockStatus(product.stock);
   // Construct the full image URL assuming the backend runs on port 5000
   const imageUrl = product.images && product.images.length > 0 
-    ? `http://localhost:5000${product.images[0]}` 
+    ? getServerUrl(product.images[0]) 
     : "/placeholder.png"; // Fallback placeholder if no image
 
   return (

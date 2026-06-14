@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchMyOrders } from "@/lib/api";
-import { formatCurrency, getStockStatus } from "@/lib/utils";
+import { formatCurrency, getStockStatus, getServerUrl } from "@/lib/utils";
 import { Package, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -120,7 +120,7 @@ export default function MyOrdersPage() {
                     );
                   }
                   
-                  const imageUrl = product.images?.[0] ? `http://localhost:5000${product.images[0]}` : "/placeholder.png";
+                  const imageUrl = product.images?.[0] ? getServerUrl(product.images[0]) : "/placeholder.png";
 
                   return (
                     <div key={item._id} className="p-6 sm:flex sm:items-start sm:justify-between">

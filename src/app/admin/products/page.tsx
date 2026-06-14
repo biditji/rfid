@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { fetchProducts, deleteProduct, deleteProductsBulk } from "@/lib/api";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, getServerUrl } from "@/lib/utils";
 import {
   Package,
   Edit,
@@ -238,7 +238,7 @@ export default function AdminProductsPage() {
                   </tr>
                 ) : (
                   paginatedProducts.map((product) => {
-                    const imageUrl = product.images?.[0] ? `http://localhost:5000${product.images[0]}` : null;
+                    const imageUrl = product.images?.[0] ? getServerUrl(product.images[0]) : null;
                     return (
                       <tr key={product._id} className="hover:bg-zinc-50 transition-colors">
                         <td className="px-4 py-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCustomers } from "@/lib/api";
+import { fetchCustomers, updateUserRole } from "@/lib/api";
 import { Search, UserCircle2, Mail, Calendar, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -26,6 +26,22 @@ export default function AdminCustomersPage() {
     loadCustomers();
   }, []);
 
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      const token = localStorage.getItem("rfid_token");
+      if (!token) return;
+      await updateUserRole(userId, newRole, token);
+      
+      setCustomers((prev) =>
+        prev.map((c) => (c._id === userId ? { ...c, role: newRole } : c))
+      );
+      alert("Role updated successfully!");
+    } catch (error) {
+      console.error("Failed to update role", error);
+      alert("Failed to update role");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -38,8 +54,8 @@ export default function AdminCustomersPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Customers (Live)</h1>
-          <p className="text-sm text-zinc-500">Manage your active users from the MongoDB database.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Users (Live)</h1>
+          <p className="text-sm text-zinc-500">Manage your active users and admins from the MongoDB database.</p>
         </div>
         
         <div className="relative w-full sm:w-64">
@@ -57,7 +73,8 @@ export default function AdminCustomersPage() {
           <table className="w-full text-left text-sm text-zinc-600">
             <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>
-                <th className="px-6 py-4 font-medium">Customer Info</th>
+                <th className="px-6 py-4 font-medium">User Info</th>
+                <th className="px-6 py-4 font-medium">Role</th>
                 <th className="px-6 py-4 font-medium">Joined Date</th>
                 <th className="px-6 py-4 font-medium text-center">Orders Placed</th>
                 <th className="px-6 py-4 font-medium text-right">Total Spent</th>
@@ -66,9 +83,9 @@ export default function AdminCustomersPage() {
             <tbody className="divide-y divide-zinc-200">
               {customers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-zinc-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
                     <UserCircle2 className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
-                    No customers found
+                    No users found
                   </td>
                 </tr>
               ) : (
@@ -86,6 +103,16 @@ export default function AdminCustomersPage() {
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <select 
+                        value={user.role || 'customer'}
+                        onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                        className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-zinc-700 cursor-pointer"
+                      >
+                        <option value="customer">Customer</option>
+                        <option value="admin">Admin</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 text-zinc-600">

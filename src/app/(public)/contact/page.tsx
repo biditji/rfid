@@ -128,8 +128,8 @@ export default function ContactPage() {
         <FadeIn delay={0.1}>
           <div className="space-y-6">
             <div className="rounded-xl border border-zinc-200 bg-white p-6">
-              <h3 className="text-sm font-semibold text-zinc-900">
-                Contact Information
+              <h3 className="text-sm font-semibold text-zinc-900 leading-relaxed">
+                India rfid shop - RFID Readers, Tags, Wristbands Manufacturer & Supplier
               </h3>
               <ul className="mt-4 space-y-4">
                 <li className="flex items-start gap-3">
@@ -204,6 +204,21 @@ export default function ContactPage() {
           </div>
         </FadeIn>
       </div>
+
+      <FadeIn delay={0.2}>
+        <div className="mt-16 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          <iframe
+            src="https://maps.google.com/maps?q=28.6214786,77.0764395&hl=en&z=16&output=embed"
+            width="100%"
+            height="450"
+            style={{ border: 0 }}
+            allowFullScreen={false}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Google Maps Location"
+          ></iframe>
+        </div>
+      </FadeIn>
     </div>
   );
 }

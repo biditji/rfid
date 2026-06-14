@@ -4,14 +4,14 @@ export const SITE_CONFIG = {
   description:
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
   url: "https://rfidhub.com",
-  email: "hello@rfidhub.com",
-  phone: "+1 (555) 824-7100",
+  email: "info@Virtualspheretechnologies.in",
+  phone: "+91-7050506400",
   address: {
-    street: "2100 Innovation Drive, Suite 400",
-    city: "Austin",
-    state: "TX",
-    zip: "78758",
-    country: "United States",
+    street: "Wz-10B, Aslatpur, Janakpuri A-2, Near Gurudwara",
+    city: "New Delhi",
+    state: "Delhi",
+    zip: "110058",
+    country: "India",
   },
   social: {
     twitter: "https://twitter.com/rfidhub",

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
-import { formatCurrency } from "@/lib/utils";
-import { createOrder } from "@/lib/api";
+import { formatCurrency, getServerUrl } from "@/lib/utils";
+import { createOrder, verifyRazorpayPayment } from "@/lib/api";
 import { Trash2, ShoppingCart, ArrowRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,19 +15,72 @@ export default function CartPage() {
   const router = useRouter();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleCheckout = async () => {
     try {
       setCheckoutLoading(true);
       const token = localStorage.getItem("rfid_token");
       if (!token) return router.push("/login");
 
-      await createOrder(token);
-      await refreshCart(); // This will clear the cart in context
-      router.push("/orders");
+      const { order, razorpayOrderId } = await createOrder(token);
+
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert("Razorpay SDK failed to load. Are you online?");
+        setCheckoutLoading(false);
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
+        amount: Math.round(cartTotal * 100),
+        currency: "INR",
+        name: "Virtualsphere",
+        description: "RFID Order Payment",
+        order_id: razorpayOrderId,
+        handler: async function (response: any) {
+          try {
+            await verifyRazorpayPayment(
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+              token
+            );
+            await refreshCart();
+            router.push("/orders");
+          } catch (verifyError) {
+            console.error("Payment verification failed", verifyError);
+            alert("Payment verification failed. Please contact support.");
+            setCheckoutLoading(false);
+          }
+        },
+        theme: {
+          color: "#2563eb",
+        },
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.on("payment.failed", function (response: any) {
+        alert("Payment failed: " + response.error.description);
+        setCheckoutLoading(false);
+      });
+      paymentObject.open();
+
     } catch (error) {
       console.error("Checkout failed:", error);
       alert("Checkout failed. Please try again.");
-      setCheckoutLoading(false); // only stop loading on error so success page transition is smooth
+      setCheckoutLoading(false);
     }
   };
 
@@ -64,7 +117,8 @@ export default function CartPage() {
             <ul role="list" className="divide-y divide-zinc-200 border-b border-t border-zinc-200">
               {items.map((item) => {
                 const product = item.product;
-                const imageUrl = product.images?.[0] ? `http://localhost:5000${product.images[0]}` : "/placeholder.png";
+                if (!product) return null;
+                const imageUrl = product.images?.[0] ? getServerUrl(product.images[0]) : "/placeholder.png";
 
                 return (
                   <li key={product._id} className="flex py-6 sm:py-10 bg-white px-6 rounded-xl my-4 shadow-sm border border-zinc-100">

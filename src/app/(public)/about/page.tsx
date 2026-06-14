@@ -1,107 +1,33 @@
 import type { Metadata } from "next";
 import {
-  Users,
   Target,
   Globe,
-  Award,
-  Lightbulb,
-  Handshake,
+  Briefcase,
+  LifeBuoy,
+  Tag,
 } from "lucide-react";
 import { FadeIn } from "@/components/shared/fade-in";
 
 export const metadata: Metadata = {
-  title: "About",
-  description:
-    "Learn about Virtualsphere — our mission, team, and commitment to delivering enterprise-grade RFID solutions worldwide.",
+  title: "About Us",
+  description: "Learn about Virtualsphere Technologies Pvt Ltd.",
 };
-
-const stats = [
-  { value: "2019", label: "Founded" },
-  { value: "500+", label: "Enterprise Clients" },
-  { value: "12K+", label: "Products Shipped" },
-  { value: "28", label: "Countries Served" },
-];
 
 const values = [
   {
-    icon: Target,
-    title: "Precision",
-    description:
-      "We obsess over accuracy — in our products, our recommendations, and our support. Every deployment is engineered to perform.",
+    icon: Briefcase,
+    title: "Professional Work",
+    description: "We deliver a professional work with agreed timelines. We are also keen in making the product secure and easily accessible at the same time for our clients.",
   },
   {
-    icon: Lightbulb,
-    title: "Expertise",
-    description:
-      "Our team has 40+ combined years in RFID, IoT, and supply chain technology. We don't just sell hardware — we understand the problem.",
+    icon: LifeBuoy,
+    title: "Top-Notch Support",
+    description: "We provide a great support for our clients, until our client is completely satisfied with our product. No worries as we even extend our support in case of uncertain errors.",
   },
   {
-    icon: Handshake,
-    title: "Partnership",
-    description:
-      "We work with you long after the sale. From initial scoping to production deployment, we're in it for the long term.",
-  },
-];
-
-const timeline = [
-  {
-    year: "2019",
-    title: "Founded in Austin",
-    description:
-      "Started as a two-person RFID consultancy helping local retailers deploy item-level tagging.",
-  },
-  {
-    year: "2020",
-    title: "Launched E-Commerce",
-    description:
-      "Opened our online store, making enterprise RFID hardware accessible to small and mid-size businesses.",
-  },
-  {
-    year: "2021",
-    title: "European Expansion",
-    description:
-      "Opened a warehouse in Rotterdam, cutting delivery times for EU customers to 2–3 business days.",
-  },
-  {
-    year: "2023",
-    title: "500 Enterprise Clients",
-    description:
-      "Reached a milestone of 500 active enterprise accounts across retail, logistics, and healthcare.",
-  },
-  {
-    year: "2024",
-    title: "Asia-Pacific Launch",
-    description:
-      "Opened Singapore fulfillment center and partnered with regional distributors across Southeast Asia.",
-  },
-  {
-    year: "2025",
-    title: "Admin Platform Launch",
-    description:
-      "Launched the Virtualsphere management platform, giving customers real-time inventory and order visibility.",
-  },
-];
-
-const team = [
-  {
-    name: "Sarah Chen",
-    role: "CEO & Co-Founder",
-    bio: "Former supply chain director at Zebra Technologies. 15 years in RFID and IoT.",
-  },
-  {
-    name: "Michael Torres",
-    role: "CTO & Co-Founder",
-    bio: "Built large-scale IoT platforms at Impinj and Samsara. Systems architect.",
-  },
-  {
-    name: "Emma Lindström",
-    role: "VP of Sales",
-    bio: "Led enterprise sales at HID Global. Specializes in B2B hardware distribution.",
-  },
-  {
-    name: "David Okafor",
-    role: "Head of Engineering",
-    bio: "Full-stack engineer with a background in warehouse automation systems.",
+    icon: Tag,
+    title: "Best Price",
+    description: "As we are team of young bloods, we focus on creating something amazing with the best competitive price for our clients without compromising the product quality.",
   },
 ];
 
@@ -111,156 +37,77 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="bg-white py-16 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          <div className="max-w-4xl mx-auto text-center">
             <FadeIn>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-                  We make RFID
-                  <br />
-                  <span className="text-zinc-400">actually work.</span>
-                </h1>
-                <p className="mt-5 text-lg leading-relaxed text-zinc-500">
-                  Virtualsphere was founded on a simple observation: buying RFID
-                  hardware shouldn&apos;t require a procurement department, three
-                  conference calls, and a six-week lead time.
+              <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
+                About Us
+              </h1>
+              <div className="mt-8 space-y-6 text-lg leading-relaxed text-zinc-600 text-left">
+                <p>
+                  <strong>Virtualsphere Technologies Pvt Ltd</strong> Provide Wide ranges of Rfid Product. We as a Information Technologies mainly provide services in RFID Implementation, Software Development as well as Digital Media Service.
                 </p>
-                <p className="mt-4 leading-relaxed text-zinc-500">
-                  We built Virtualsphere to be the opposite — a focused,
-                  knowledgeable supplier where you can find the right product,
-                  get real technical guidance, and have it shipped the same day.
-                  No fluff, no middlemen, no unnecessary complexity.
+                <p>
+                  We are an Elite Enterprise Solution & IT service provider. With our effective digital solutions and immense expertise in cutting-edge technologies, we are helping companies around the world to transform their business. We offer a variety of services in the area of Rfid, software and web development. We have provided 24+ software solution all over India.
                 </p>
               </div>
             </FadeIn>
-
-            <FadeIn delay={0.1}>
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-10">
-                <div className="flex h-full items-center justify-center py-10">
-                  <div className="text-center">
-                    <Users className="mx-auto h-12 w-12 text-zinc-300" />
-                    <p className="mt-3 text-sm text-zinc-400">Team photo</p>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* Stats strip */}
-      <section className="border-y border-zinc-200 bg-zinc-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 divide-x divide-zinc-200 lg:grid-cols-4">
-            {stats.map((stat, idx) => (
-              <FadeIn key={stat.label} delay={idx * 0.08}>
-                <div className="px-6 py-10 text-center">
-                  <div className="text-3xl font-bold text-zinc-900">
-                    {stat.value}
-                  </div>
-                  <div className="mt-1 text-sm text-zinc-500">
-                    {stat.label}
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section className="bg-white py-20 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <FadeIn>
-            <h2 className="text-2xl font-bold tracking-tight text-zinc-900">
-              What drives us
-            </h2>
-          </FadeIn>
-
-          <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-3">
-            {values.map((value, idx) => (
-              <FadeIn key={value.title} delay={idx * 0.08}>
-                <div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
-                    <value.icon className="h-5 w-5 text-zinc-700" />
-                  </div>
-                  <h3 className="mt-4 text-base font-semibold text-zinc-900">
-                    {value.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-                    {value.description}
-                  </p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Team */}
+      {/* Vision & Mission */}
       <section className="border-t border-zinc-200 bg-zinc-50 py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <FadeIn>
-            <h2 className="text-2xl font-bold tracking-tight text-zinc-900">
-              Our team
-            </h2>
-            <p className="mt-2 text-zinc-500">
-              Engineers and operators who&apos;ve deployed RFID at scale.
-            </p>
-          </FadeIn>
-
-          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {team.map((person, idx) => (
-              <FadeIn key={person.name} delay={idx * 0.06}>
-                <div className="rounded-xl border border-zinc-200 bg-white p-6">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 text-lg font-semibold text-zinc-500">
-                    {person.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </div>
-                  <h3 className="mt-4 text-sm font-semibold text-zinc-900">
-                    {person.name}
-                  </h3>
-                  <p className="text-xs font-medium text-zinc-500">
-                    {person.role}
-                  </p>
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-400">
-                    {person.bio}
-                  </p>
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+            <FadeIn delay={0.1}>
+              <div className="rounded-2xl border border-zinc-200 bg-white p-10 h-full shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-blue-600 mb-6">
+                  <Target className="h-6 w-6" />
                 </div>
-              </FadeIn>
-            ))}
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Our Vision</h2>
+                <p className="mt-4 leading-relaxed text-zinc-600">
+                  Make Technology an asset for Our Clients & not a Problem! Our vision is to be one of the Most Innovative IT Company in the industry who is known for Translating Technologies into Agile Solutions which add Value to Our Clients.
+                </p>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={0.2}>
+              <div className="rounded-2xl border border-zinc-200 bg-white p-10 h-full shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 mb-6">
+                  <Globe className="h-6 w-6" />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Our Mission</h2>
+                <p className="mt-4 leading-relaxed text-zinc-600">
+                  For us, it matters that we drive technology as an equalizing force, as an enabler for everyone around the world. To provide excellent service for the growth of our clients and partners across the globe. We bring solutions to make life easier for our clients.
+                </p>
+              </div>
+            </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* Timeline */}
+      {/* Core Values */}
       <section className="bg-white py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FadeIn>
-            <h2 className="text-2xl font-bold tracking-tight text-zinc-900">
-              Our journey
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 text-center">
+              Why Choose Us
             </h2>
           </FadeIn>
 
-          <div className="mt-10 space-y-0">
-            {timeline.map((item, idx) => (
-              <FadeIn key={item.year} delay={idx * 0.05}>
-                <div className="flex gap-6 border-l-2 border-zinc-200 py-6 pl-8 last:border-l-emerald-300">
-                  <div className="relative">
-                    <div className="absolute -left-[41px] top-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-zinc-200 bg-white">
-                      <div className="h-2 w-2 rounded-full bg-zinc-400" />
-                    </div>
-                    <span className="text-sm font-bold text-zinc-900">
-                      {item.year}
-                    </span>
-                    <h3 className="mt-1 text-sm font-semibold text-zinc-800">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-sm text-zinc-500">
-                      {item.description}
-                    </p>
+          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
+            {values.map((value, idx) => (
+              <FadeIn key={value.title} delay={idx * 0.1}>
+                <div className="flex flex-col items-center text-center p-8 rounded-3xl bg-zinc-50 border border-zinc-100 hover:shadow-md transition-shadow h-full">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm border border-zinc-100 mb-6">
+                    <value.icon className="h-8 w-8 text-zinc-700" />
                   </div>
+                  <h3 className="text-xl font-bold text-zinc-900">
+                    {value.title}
+                  </h3>
+                  <p className="mt-4 leading-relaxed text-zinc-600">
+                    {value.description}
+                  </p>
                 </div>
               </FadeIn>
             ))}

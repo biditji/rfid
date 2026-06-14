@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Save, Undo2, UploadCloud, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getServerUrl } from "@/lib/utils";
 
 const TABS = ["General", "Data", "SEO"] as const;
 type Tab = (typeof TABS)[number];
@@ -83,7 +83,7 @@ export default function EditCategoryPage({ params }: { params: Promise<{ id: str
 
         if (category.image) {
           setExistingImage(category.image);
-          setImagePreview(`http://localhost:5000${category.image}`);
+          setImagePreview(getServerUrl(category.image));
         }
       } catch (err) {
         console.error("Failed to load category data", err);

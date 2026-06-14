@@ -264,6 +264,19 @@ export async function createOrder(token: string) {
   return await res.json();
 }
 
+export async function verifyRazorpayPayment(data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }, token: string) {
+  const res = await fetch(`${API_URL}/payment/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Payment verification failed');
+  return await res.json();
+}
+
 export async function fetchMyOrders(token: string) {
   const res = await fetch(`${API_URL}/orders/myorders`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -330,5 +343,18 @@ export async function updateOrderStatus(orderId: string, status: string, token: 
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error('Failed to update order status');
+  return await res.json();
+}
+
+export async function updateUserRole(userId: string, role: string, token: string) {
+  const res = await fetch(`${API_URL}/admin/users/${userId}/role`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error('Failed to update user role');
   return await res.json();
 }
