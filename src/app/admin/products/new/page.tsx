@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchCategories, createProduct, uploadImage } from "@/lib/api";
+import { fetchCategories, createProduct, uploadImages } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -67,8 +67,8 @@ export default function NewProductPage() {
     slug: "",
   });
 
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -108,9 +108,9 @@ export default function NewProductPage() {
       const token = localStorage.getItem("rfid_token") || "";
 
       let imageUrls: string[] = [];
-      if (selectedImage) {
-        const imagePath = await uploadImage(selectedImage, token);
-        imageUrls.push(imagePath);
+      if (selectedImages.length > 0) {
+        const uploadedPaths = await uploadImages(selectedImages, token);
+        imageUrls = [...uploadedPaths];
       }
 
       const payload = {
@@ -616,24 +616,28 @@ export default function NewProductPage() {
             <div>
               <Label className="text-sm font-medium text-zinc-900">Image</Label>
               <div className="mt-2 flex justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-8">
-                <div className="text-center">
-                  {imagePreview ? (
-                    <div className="relative mx-auto h-48 w-48 overflow-hidden rounded-md border border-zinc-200">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedImage(null);
-                          setImagePreview(null);
-                        }}
-                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                <div className="text-center w-full">
+                  {imagePreviews.length > 0 ? (
+                    <div className="flex flex-wrap gap-4 justify-center mb-6">
+                      {imagePreviews.map((preview, idx) => (
+                        <div key={idx} className="relative h-32 w-32 overflow-hidden rounded-md border border-zinc-200">
+                          <img
+                            src={preview}
+                            alt={`Preview ${idx + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+                              setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                            }}
+                            className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <UploadCloud
@@ -646,22 +650,27 @@ export default function NewProductPage() {
                       htmlFor="product-image-upload"
                       className="relative cursor-pointer rounded-md font-semibold text-blue-600 hover:text-blue-500"
                     >
-                      <span>Upload main image</span>
+                      <span>Upload images</span>
                       <input
                         id="product-image-upload"
                         type="file"
                         className="sr-only"
                         accept="image/*"
+                        multiple
                         onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setSelectedImage(e.target.files[0]);
-                            setImagePreview(URL.createObjectURL(e.target.files[0]));
+                          if (e.target.files && e.target.files.length > 0) {
+                            const files = Array.from(e.target.files);
+                            setSelectedImages((prev) => [...prev, ...files]);
+                            setImagePreviews((prev) => [
+                              ...prev,
+                              ...files.map((f) => URL.createObjectURL(f)),
+                            ]);
                           }
                         }}
                       />
                     </label>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-1">PNG, JPG, GIF up to 5MB</p>
+                  <p className="text-xs text-zinc-500 mt-1">PNG, JPG, GIF up to 5MB (multiple allowed)</p>
                 </div>
               </div>
             </div>

@@ -315,6 +315,28 @@ export async function uploadImage(file: File, token: string) {
   return await res.text(); // Returns the path string
 }
 
+export async function uploadImages(files: File[], token: string) {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('images', file);
+  });
+
+  const res = await fetch(`${API_URL}/upload/multiple`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to upload images');
+  }
+
+  return await res.json(); // Returns array of path strings
+}
+
 export async function fetchDashboardStats(token: string) {
   const res = await fetch(`${API_URL}/admin/dashboard`, {
     headers: { Authorization: `Bearer ${token}` },
