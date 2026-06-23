@@ -50,7 +50,7 @@ export default async function ProductPage({ params }: Props) {
   const stockStatus = getStockStatus(product.stock);
   // Construct the full image URLs assuming the backend runs on port 5000
   const imageUrls = product.images && product.images.length > 0 
-    ? product.images.map(img => getServerUrl(img))
+    ? product.images.map((img: string) => getServerUrl(img))
     : [];
 
   return (
