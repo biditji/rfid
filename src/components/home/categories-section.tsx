@@ -67,34 +67,34 @@ export function CategoriesSection() {
   useGSAP(() => {
     // Header reveal
     if (headerRef.current) {
-      gsap.from(headerRef.current.children, {
-        y: 30,
-        opacity: 0,
-        stagger: 0.1,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: headerRef.current,
-          start: "top 85%",
-          toggleActions: "play none none reverse",
-        },
-      });
+      gsap.fromTo(headerRef.current.children, 
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          stagger: 0.1,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: headerRef.current,
+            start: "top 85%",
+            toggleActions: "play none none reverse",
+          },
+        }
+      );
     }
 
     // Grid cards batch reveal
     ScrollTrigger.batch(".category-card", {
       interval: 0.1,
       batchMax: 3,
+      once: true,
       onEnter: (batch) =>
         gsap.fromTo(
           batch,
           { opacity: 0, y: 50, scale: 0.95 },
-          { opacity: 1, y: 0, scale: 1, stagger: 0.1, duration: 0.6, ease: "back.out(1.5)" }
+          { opacity: 1, y: 0, scale: 1, stagger: 0.1, duration: 0.6, ease: "back.out(1.5)", overwrite: true }
         ),
-      onLeave: (batch) => gsap.to(batch, { opacity: 0, y: -50, overwrite: true }),
-      onEnterBack: (batch) =>
-        gsap.to(batch, { opacity: 1, y: 0, scale: 1, stagger: 0.1, overwrite: true }),
-      onLeaveBack: (batch) => gsap.to(batch, { opacity: 0, y: 50, overwrite: true }),
       start: "top 85%",
     });
   }, { scope: containerRef });

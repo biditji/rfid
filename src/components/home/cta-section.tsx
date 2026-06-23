@@ -19,16 +19,14 @@ export function CTASection() {
     gsap.fromTo(
       bgRef.current,
       {
-        scale: 0.8,
-        borderRadius: "4rem",
+        clipPath: "inset(25% 15% 25% 15% round 3rem)",
       },
       {
-        scale: 1,
-        borderRadius: "0rem",
+        clipPath: "inset(0% 0% 0% 0% round 0rem)",
         ease: "power2.inOut",
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top bottom",
+          start: "top 95%",
           end: "center center",
           scrub: 1,
         },
@@ -48,12 +46,12 @@ export function CTASection() {
           y: 0,
           opacity: 1,
           stagger: 0.15,
-          duration: 1,
-          ease: "back.out(1.7)",
+          duration: 0.6,
+          ease: "power3.out",
           scrollTrigger: {
             trigger: containerRef.current,
-            start: "top 75%",
-            toggleActions: "play none none reverse",
+            start: "top 85%",
+            once: true,
           },
         }
       );
@@ -64,11 +62,11 @@ export function CTASection() {
     <section ref={containerRef} className="relative py-24 sm:py-32 overflow-hidden bg-white">
       <div 
         ref={bgRef} 
-        className="absolute inset-0 bg-slate-900 z-0 origin-center"
-      />
-      
-      {/* Decorative gradient overlay */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-900/20 to-violet-900/20 opacity-50" />
+        className="absolute inset-0 bg-slate-900 z-0"
+      >
+        {/* Decorative gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-violet-900/20 opacity-50" />
+      </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div ref={textRef} className="mx-auto max-w-2xl text-center">

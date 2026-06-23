@@ -16,7 +16,12 @@ export function FeaturedProducts() {
       try {
         const data = await fetchProducts();
         // Skip first 7 (shown in hero spotlight + quick browse) and grab next 6
-        setProducts(data.slice(7, 13));
+        let exploreProducts = data.slice(7, 13);
+        // If the database has very few products, fallback to showing the first ones
+        if (exploreProducts.length < 3) {
+          exploreProducts = data.slice(0, 6);
+        }
+        setProducts(exploreProducts);
       } catch (err) {
         console.error("Failed to fetch products", err);
       } finally {
@@ -77,13 +82,13 @@ export function FeaturedProducts() {
                     )}
                   </div>
                   
-                  <div className="relative h-64 w-full bg-white flex items-center justify-center p-8 mix-blend-multiply overflow-hidden">
+                  <div className="relative h-64 w-full bg-white flex items-center justify-center p-8 overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-50/50 to-transparent z-0" />
                     {imageUrl ? (
                       <img 
                         src={imageUrl} 
                         alt={product.name} 
-                        className="h-full w-full object-contain relative z-10 transition-transform duration-700 group-hover:scale-110" 
+                        className="max-h-full max-w-full object-contain relative z-10 transition-transform duration-700 group-hover:scale-110 drop-shadow-xl" 
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-zinc-300 relative z-10">
