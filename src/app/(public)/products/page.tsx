@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { ProductsContent } from "@/components/products/products-content";
 import { fetchProducts } from "@/lib/api";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Products",
   description:
