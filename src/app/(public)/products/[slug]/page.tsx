@@ -4,6 +4,7 @@ import { fetchProductBySlug } from "@/lib/api";
 import { formatCurrency, getStockStatus, cn, getServerUrl } from "@/lib/utils";
 import { ShoppingCart, Package, ShieldCheck, Truck } from "lucide-react";
 import { AddToCartButton } from "@/components/products/add-to-cart-button";
+import { ImageGallery } from "@/components/products/image-gallery";
 
 // Props definition for dynamic route
 type Props = {
@@ -47,10 +48,10 @@ export default async function ProductPage({ params }: Props) {
   }
 
   const stockStatus = getStockStatus(product.stock);
-  // Construct the full image URL assuming the backend runs on port 5000
-  const imageUrl = product.images && product.images.length > 0 
-    ? getServerUrl(product.images[0]) 
-    : "/placeholder.png"; // Fallback placeholder if no image
+  // Construct the full image URLs assuming the backend runs on port 5000
+  const imageUrls = product.images && product.images.length > 0 
+    ? product.images.map(img => getServerUrl(img))
+    : [];
 
   return (
     <div className="bg-zinc-50 min-h-screen pb-24">
@@ -77,23 +78,8 @@ export default async function ProductPage({ params }: Props) {
         <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-12 xl:gap-x-16">
           
           {/* Left Column - Image Gallery */}
-          <div className="flex flex-col-reverse">
-            <div className="mt-6 w-full max-w-2xl sm:block lg:max-w-none">
-              <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-2xl bg-white border border-zinc-200 shadow-sm">
-                {product.images && product.images.length > 0 ? (
-                  <img
-                    src={imageUrl}
-                    alt={product.name}
-                    className="h-full w-full object-cover object-center sm:rounded-lg"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-zinc-100 text-zinc-400">
-                    <Package className="h-24 w-24 opacity-20" />
-                    <span className="sr-only">No image available</span>
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="lg:sticky lg:top-8">
+            <ImageGallery images={imageUrls} productName={product.name} />
           </div>
 
           {/* Right Column - Product Info */}
@@ -119,6 +105,80 @@ export default async function ProductPage({ params }: Props) {
               <div className="space-y-6 text-base text-zinc-700">
                 <p>{product.description}</p>
               </div>
+            </div>
+
+            <div className="mt-8 border-t border-zinc-200 pt-8">
+              <h3 className="text-lg font-medium text-zinc-900 mb-4">Product Specifications</h3>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 text-sm">
+                {product.model && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">Model</dt>
+                    <dd className="text-zinc-900 mt-1">{product.model}</dd>
+                  </div>
+                )}
+                {product.sku && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">SKU</dt>
+                    <dd className="text-zinc-900 mt-1">{product.sku}</dd>
+                  </div>
+                )}
+                {product.upc && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">UPC</dt>
+                    <dd className="text-zinc-900 mt-1">{product.upc}</dd>
+                  </div>
+                )}
+                {product.ean && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">EAN</dt>
+                    <dd className="text-zinc-900 mt-1">{product.ean}</dd>
+                  </div>
+                )}
+                {product.jan && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">JAN</dt>
+                    <dd className="text-zinc-900 mt-1">{product.jan}</dd>
+                  </div>
+                )}
+                {product.isbn && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">ISBN</dt>
+                    <dd className="text-zinc-900 mt-1">{product.isbn}</dd>
+                  </div>
+                )}
+                {product.mpn && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">MPN</dt>
+                    <dd className="text-zinc-900 mt-1">{product.mpn}</dd>
+                  </div>
+                )}
+                {product.weight > 0 && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">Weight</dt>
+                    <dd className="text-zinc-900 mt-1">{product.weight} {product.weightClass}</dd>
+                  </div>
+                )}
+                {product.dimensions && (product.dimensions.length || product.dimensions.width || product.dimensions.height) && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">Dimensions (L x W x H)</dt>
+                    <dd className="text-zinc-900 mt-1">
+                      {product.dimensions.length || 0} x {product.dimensions.width || 0} x {product.dimensions.height || 0} {product.lengthClass}
+                    </dd>
+                  </div>
+                )}
+                {product.minimumQuantity > 1 && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2">
+                    <dt className="text-zinc-500 font-medium">Minimum Order Quantity</dt>
+                    <dd className="text-zinc-900 mt-1">{product.minimumQuantity}</dd>
+                  </div>
+                )}
+                {product.productTags && (
+                  <div className="flex flex-col border-b border-zinc-100 pb-2 sm:col-span-2">
+                    <dt className="text-zinc-500 font-medium">Tags</dt>
+                    <dd className="text-zinc-900 mt-1">{product.productTags}</dd>
+                  </div>
+                )}
+              </dl>
             </div>
 
             <div className="mt-8 border-t border-zinc-200 pt-8">

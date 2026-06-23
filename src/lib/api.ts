@@ -9,7 +9,8 @@ export async function fetchProducts() {
       throw new Error(`Failed to fetch products: ${res.status}`);
     }
     
-    return await res.json();
+    const data = await res.json();
+    return data.products || data;
   } catch (error) {
     console.error('Error fetching products:', error);
     return [];
@@ -283,7 +284,8 @@ export async function fetchMyOrders(token: string) {
     cache: 'no-store'
   });
   if (!res.ok) throw new Error('Failed to fetch orders');
-  return await res.json();
+  const data = await res.json();
+  return data.orders || data;
 }
 
 export async function fetchAllOrders(token: string) {
@@ -292,7 +294,8 @@ export async function fetchAllOrders(token: string) {
     cache: 'no-store'
   });
   if (!res.ok) throw new Error('Failed to fetch all orders');
-  return await res.json();
+  const data = await res.json();
+  return data.orders || data;
 }
 
 export async function uploadImage(file: File, token: string) {
@@ -352,7 +355,8 @@ export async function fetchCustomers(token: string) {
     cache: 'no-store'
   });
   if (!res.ok) throw new Error('Failed to fetch customers');
-  return await res.json();
+  const data = await res.json();
+  return data.users || data;
 }
 
 export async function updateOrderStatus(orderId: string, status: string, token: string) {
