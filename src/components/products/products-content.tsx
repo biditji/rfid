@@ -18,6 +18,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [inStockOnly, setInStockOnly] = useState(false);
 
   const filtered = useMemo(() => {
     let result = [...products];
@@ -38,6 +39,10 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
       result = result.filter((p) => p.category?.name === selectedCategory || p.category === selectedCategory);
     }
 
+    if (inStockOnly) {
+      result = result.filter((p) => p.stock > 0);
+    }
+
     switch (sortBy) {
       case "price-asc":
         result.sort((a, b) => a.price - b.price);
@@ -56,7 +61,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
     }
 
     return result;
-  }, [products, search, selectedCategory, sortBy]);
+  }, [products, search, selectedCategory, sortBy, inStockOnly]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -163,20 +168,14 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
               Availability
             </h3>
             <div className="mt-3 space-y-2">
-              <label className="flex items-center gap-2 text-sm text-zinc-600">
+              <label className="flex items-center gap-2 text-sm text-zinc-600 cursor-pointer">
                 <input
                   type="checkbox"
                   className="h-3.5 w-3.5 rounded border-zinc-300"
-                  defaultChecked
+                  checked={inStockOnly}
+                  onChange={(e) => setInStockOnly(e.target.checked)}
                 />
-                In Stock
-              </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-600">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-zinc-300"
-                />
-                Include Out of Stock
+                In Stock Only
               </label>
             </div>
           </div>
