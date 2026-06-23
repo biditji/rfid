@@ -14,6 +14,9 @@ export default function CartPage() {
   const { items, cartTotal, loading, removeFromCart, updateQuantity, refreshCart } = useCart();
   const router = useRouter();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -27,11 +30,21 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     try {
+      setCheckoutError("");
+      if (!shippingAddress.trim()) {
+        setCheckoutError("Please enter your shipping address.");
+        return;
+      }
+      if (!phoneNumber.trim() || phoneNumber.replace(/\D/g, '').length < 10) {
+        setCheckoutError("Please enter a valid phone number.");
+        return;
+      }
+
       setCheckoutLoading(true);
       const token = localStorage.getItem("rfid_token");
       if (!token) return router.push("/login");
 
-      const { order, razorpayOrderId } = await createOrder(token);
+      const { order, razorpayOrderId } = await createOrder(shippingAddress, phoneNumber, token);
 
       const res = await loadRazorpayScript();
       if (!res) {
@@ -210,24 +223,49 @@ export default function CartPage() {
                 <dd className="text-zinc-900 font-medium">Calculated at checkout</dd>
               </div>
               <div className="flex items-center justify-between border-t border-zinc-200 pt-4">
-                <dt className="flex items-center text-sm">
-                  <span>Tax estimate</span>
-                </dt>
-                <dd className="text-zinc-900 font-medium">Calculated at checkout</dd>
-              </div>
-              <div className="flex items-center justify-between border-t border-zinc-200 pt-4">
                 <dt className="text-base font-medium text-zinc-900">Order total</dt>
                 <dd className="text-xl font-bold text-zinc-900">{formatCurrency(cartTotal)}</dd>
               </div>
             </dl>
 
-            <div className="mt-8">
+            <div className="mt-8 pt-6 border-t border-zinc-200 space-y-4">
+              <h3 className="text-md font-semibold text-zinc-900">Shipping Details</h3>
+              
+              <div>
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-zinc-700 mb-1">
+                  Phone Number
+                </label>
+                <Input 
+                  id="phoneNumber" 
+                  placeholder="Enter your phone number" 
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="shippingAddress" className="block text-sm font-medium text-zinc-700 mb-1">
+                  Full Delivery Address
+                </label>
+                <textarea 
+                  id="shippingAddress" 
+                  placeholder="Enter your full street address, city, state, and PIN code" 
+                  className="flex min-h-[80px] w-full rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                />
+              </div>
+
+              {checkoutError && (
+                <p className="text-sm font-medium text-red-500">{checkoutError}</p>
+              )}
+
               <Button 
                 onClick={handleCheckout}
                 disabled={checkoutLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 text-lg rounded-xl shadow-md transition-all active:scale-[0.98]"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 text-lg rounded-xl shadow-md transition-all active:scale-[0.98] mt-4"
               >
-                {checkoutLoading ? "Processing..." : "1-Click Checkout"} <ArrowRight className="ml-2 h-5 w-5" />
+                {checkoutLoading ? "Processing..." : "Proceed to Payment"} <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
           </section>

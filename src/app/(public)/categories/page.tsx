@@ -9,7 +9,7 @@ import {
   Wrench,
   ArrowRight,
 } from "lucide-react";
-import { categories } from "@/data/categories";
+import { fetchCategories } from "@/lib/api";
 import { FadeIn } from "@/components/shared/fade-in";
 
 export const metadata: Metadata = {
@@ -36,7 +36,9 @@ const categoryImages: Record<string, string> = {
   "Accessories": "bg-zinc-100",
 };
 
-export default function CategoriesPage() {
+export default async function CategoriesPage() {
+  const categories = await fetchCategories();
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <FadeIn>
@@ -52,14 +54,14 @@ export default function CategoriesPage() {
       </FadeIn>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((cat, idx) => {
+        {categories.map((cat: any, idx: number) => {
           const Icon = categoryIcons[cat.name] || Package;
           const bgClass = categoryImages[cat.name] || "bg-zinc-100";
 
           return (
-            <FadeIn key={cat.id} delay={idx * 0.06}>
+            <FadeIn key={cat._id} delay={idx * 0.06}>
               <Link
-                href={`/products?category=${cat.slug}`}
+                href={`/products?category=${cat.slug || cat._id}`}
                 className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
               >
                 <div
@@ -72,12 +74,9 @@ export default function CategoriesPage() {
                     <h2 className="text-base font-semibold text-zinc-900 group-hover:text-zinc-700">
                       {cat.name}
                     </h2>
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
-                      {cat.productCount} products
-                    </span>
                   </div>
                   <p className="mt-2 text-sm text-zinc-500 line-clamp-2">
-                    {cat.description}
+                    {cat.description || "Browse products in this category."}
                   </p>
                   <div className="mt-auto pt-4">
                     <span className="inline-flex items-center gap-1 text-sm font-medium text-zinc-600 group-hover:text-zinc-900">

@@ -20,6 +20,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FadeIn } from "@/components/shared/fade-in";
 import { fetchProducts } from "@/lib/api";
 import { formatCurrency, getServerUrl } from "@/lib/utils";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const categories = [
   { name: "Tags", slug: "rfid-tags", icon: Tag, color: "from-blue-500/10 to-blue-600/5", border: "border-blue-200/60", text: "text-blue-700", iconBg: "bg-blue-500" },
@@ -43,6 +48,84 @@ export function HeroSection() {
   const [isPaused, setIsPaused] = useState(false);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLFormElement>(null);
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
+  const orbsRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    const tl = gsap.timeline();
+
+    // Text stagger reveal
+    if (textRef.current) {
+      tl.fromTo(textRef.current.children, 
+        { y: 40, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.15,
+          ease: "power3.out",
+        }
+      );
+    }
+
+    // Search bar reveal
+    if (searchRef.current) {
+      tl.fromTo(searchRef.current, 
+        { y: 20, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          ease: "back.out(1.5)",
+        }, "-=0.4"
+      );
+    }
+
+    // Category pills stagger
+    if (pillsRef.current) {
+      tl.fromTo(pillsRef.current.children, 
+        { scale: 0.8, opacity: 0 },
+        {
+          scale: 1,
+          opacity: 1,
+          duration: 0.4,
+          stagger: 0.05,
+          ease: "back.out(2)",
+        }, "-=0.2"
+      );
+    }
+
+    // Spotlight fade in
+    if (spotlightRef.current) {
+      tl.fromTo(spotlightRef.current, 
+        { y: 50, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power3.out",
+        }, "-=0.4"
+      );
+    }
+
+    // Parallax orbs on scroll
+    if (orbsRef.current) {
+      gsap.to(orbsRef.current.children, {
+        yPercent: 30,
+        ease: "none",
+        scrollTrigger: {
+          trigger: heroRef.current,
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+    }
+  }, { scope: heroRef });
 
   useEffect(() => {
     async function load() {
@@ -113,7 +196,7 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-white">
+    <section ref={heroRef} className="relative overflow-hidden bg-white">
       {/* Subtle background texture */}
       <div className="absolute inset-0 opacity-[0.02]">
         <div
@@ -127,21 +210,21 @@ export function HeroSection() {
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* ─── ZONE 1: Headline + Search + Category Pills ─── */}
-        <FadeIn>
-          <div className="pt-10 pb-8 sm:pt-14 sm:pb-10">
-            {/* Headline row */}
-            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl lg:text-[2.75rem]">
-                  Enterprise RFID Hardware
-                </h1>
-                <p className="mt-1.5 text-base text-zinc-500 sm:text-lg">
-                  Professional-grade tags, readers, antennas & complete tracking systems
-                </p>
-              </div>
+        <div className="pt-10 pb-8 sm:pt-14 sm:pb-10">
+          {/* Headline row */}
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div ref={textRef}>
+              <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl lg:text-[2.75rem] overflow-hidden">
+                <span className="block">Enterprise RFID Hardware</span>
+              </h1>
+              <p className="mt-1.5 text-base text-zinc-500 sm:text-lg">
+                Professional-grade tags, readers, antennas & complete tracking systems
+              </p>
+            </div>
 
-              {/* Search bar */}
-              <form
+            {/* Search bar */}
+            <form
+              ref={searchRef}
                 onSubmit={handleSearch}
                 className="hero-search-glow glass-strong flex w-full items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm transition-all duration-300 sm:w-auto sm:min-w-[320px]"
               >
@@ -163,7 +246,7 @@ export function HeroSection() {
             </div>
 
             {/* Category pills */}
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div ref={pillsRef} className="mt-6 flex flex-wrap gap-2">
               {categories.map((cat) => (
                 <Link
                   key={cat.slug}
@@ -178,17 +261,19 @@ export function HeroSection() {
               ))}
             </div>
           </div>
-        </FadeIn>
 
         {/* ─── ZONE 2: Product Spotlight ─── */}
         <div
+          ref={spotlightRef}
           className="relative rounded-3xl hero-spotlight-gradient border border-zinc-100 overflow-hidden"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
           {/* Decorative glow orbs */}
-          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl animate-glow-pulse" />
-          <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-violet-200/20 blur-3xl animate-glow-pulse" style={{ animationDelay: "2s" }} />
+          <div ref={orbsRef} className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl animate-glow-pulse" />
+            <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-violet-200/20 blur-3xl animate-glow-pulse" style={{ animationDelay: "2s" }} />
+          </div>
 
           {loading ? (
             <div className="flex h-[420px] items-center justify-center sm:h-[400px]">
@@ -209,7 +294,7 @@ export function HeroSection() {
                   animate="center"
                   exit="exit"
                   transition={{ duration: 0.45, ease: [0.22, 0.68, 0.36, 1] }}
-                  className="relative z-10 flex flex-col"
+                  className="relative z-10 flex flex-col pb-16 sm:pb-20 lg:pb-0"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -230,7 +315,7 @@ export function HeroSection() {
                     {currentProduct.name}
                   </h2>
 
-                  <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-500 sm:text-base sm:line-clamp-3">
+                  <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-500 sm:text-base">
                     {currentProduct.description}
                   </p>
 

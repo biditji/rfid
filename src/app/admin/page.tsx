@@ -92,7 +92,7 @@ export default function DashboardPage() {
     },
     {
       label: "Avg. Order",
-      value: stats.totalSales > 0 ? formatCurrency(stats.totalRevenue / stats.totalSales) : "$0",
+      value: stats.totalSales > 0 ? formatCurrency(stats.totalRevenue / stats.totalSales) : "₹0",
       change: "-2.1%",
       trend: "down" as const,
       icon: TrendingUp,

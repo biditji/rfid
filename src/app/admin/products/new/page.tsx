@@ -17,6 +17,12 @@ import {
 } from "@/components/ui/select";
 import { Save, Undo2, UploadCloud, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((mod) => mod.RichTextEditor),
+  { ssr: false }
+);
 
 const TABS = ["General", "Data", "Links", "Image", "SEO"] as const;
 type Tab = (typeof TABS)[number];
@@ -63,6 +69,23 @@ export default function NewProductPage() {
     sortOrder: "0",
     // Links
     category: "",
+    // Specifications
+    specifications: [
+      { name: "Model Name", value: "" },
+      { name: "Dimension", value: "" },
+      { name: "Comm Interface", value: "" },
+      { name: "Color", value: "" },
+      { name: "Material", value: "" },
+      { name: "Housing Material", value: "" },
+      { name: "Baud Rate", value: "" },
+      { name: "Working Frequency", value: "" },
+      { name: "Engine", value: "" },
+      { name: "Protocol", value: "" },
+      { name: "Gain", value: "" },
+      { name: "Input Impedance", value: "" },
+      { name: "VSWR", value: "" },
+      { name: "Language", value: "" }
+    ],
     // SEO
     slug: "",
   });
@@ -104,6 +127,32 @@ export default function NewProductPage() {
     setError("");
     setSuccess("");
 
+    if (!formData.name) {
+      setError("Product Name is required (General tab).");
+      setIsLoading(false);
+      return;
+    }
+    if (!formData.model) {
+      setError("Model is required (Data tab).");
+      setIsLoading(false);
+      return;
+    }
+    if (!formData.sku) {
+      setError("SKU is required (Data tab).");
+      setIsLoading(false);
+      return;
+    }
+    if (!formData.price) {
+      setError("Price is required (Data tab).");
+      setIsLoading(false);
+      return;
+    }
+    if (!formData.category) {
+      setError("Category is required (Links tab).");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem("rfid_token") || "";
 
@@ -144,6 +193,8 @@ export default function NewProductPage() {
         sortOrder: Number(formData.sortOrder),
         // Links
         category: formData.category || undefined,
+        // Specifications
+        specifications: formData.specifications.filter(s => s.name.trim()),
         // Image
         images: imageUrls,
         // SEO
@@ -238,7 +289,6 @@ export default function NewProductPage() {
               <Input
                 id="name"
                 name="name"
-                required
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Product Name"
@@ -249,16 +299,13 @@ export default function NewProductPage() {
               <Label htmlFor="description" className="text-sm font-medium text-zinc-900">
                 <span className="text-red-500 mr-0.5">*</span>Description
               </Label>
-              <Textarea
-                id="description"
-                name="description"
-                required
-                rows={10}
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Product description..."
-                className="mt-1.5"
-              />
+              <div className="mt-1.5 bg-white">
+                <RichTextEditor
+                  value={formData.description}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, description: val }))}
+                  className="h-64 mb-12"
+                />
+              </div>
             </div>
             <div>
               <Label htmlFor="metaTitle" className="text-sm font-medium text-zinc-900">
@@ -327,13 +374,13 @@ export default function NewProductPage() {
                   <Label htmlFor="model" className="text-sm font-medium text-zinc-900">
                     <span className="text-red-500 mr-0.5">*</span>Model
                   </Label>
-                  <Input id="model" name="model" required value={formData.model} onChange={handleChange} placeholder="Model" className="mt-1.5" />
+                  <Input id="model" name="model" value={formData.model} onChange={handleChange} placeholder="Model" className="mt-1.5" />
                 </div>
                 <div>
                   <Label htmlFor="sku" className="text-sm font-medium text-zinc-900">
                     <span className="text-red-500 mr-0.5">*</span>SKU
                   </Label>
-                  <Input id="sku" name="sku" required value={formData.sku} onChange={handleChange} placeholder="Stock Keeping Unit" className="mt-1.5" />
+                  <Input id="sku" name="sku" value={formData.sku} onChange={handleChange} placeholder="Stock Keeping Unit" className="mt-1.5" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -374,7 +421,6 @@ export default function NewProductPage() {
                       name="price"
                       type="number"
                       step="0.01"
-                      required
                       value={formData.price}
                       onChange={handleChange}
                       placeholder="Price"
@@ -483,8 +529,65 @@ export default function NewProductPage() {
             {/* Section 3: Specifications */}
             <div className="mb-8">
               <h3 className="text-sm font-bold tracking-wide text-zinc-900 uppercase border-b border-zinc-200 pb-2 mb-4">Specifications</h3>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
+                  <Label className="text-sm font-medium text-zinc-900 mb-2 block">
+                    Custom Specifications
+                  </Label>
+                  {formData.specifications.map((spec, index) => (
+                    <div key={index} className="flex gap-3 mb-3">
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Name (e.g., Dimension)"
+                          value={spec.name}
+                          onChange={(e) => {
+                            const newSpecs = [...formData.specifications];
+                            newSpecs[index].name = e.target.value;
+                            setFormData((prev) => ({ ...prev, specifications: newSpecs }));
+                          }}
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <Input
+                          placeholder="Value (e.g., 270 x 270 x 77mm)"
+                          value={spec.value}
+                          onChange={(e) => {
+                            const newSpecs = [...formData.specifications];
+                            newSpecs[index].value = e.target.value;
+                            setFormData((prev) => ({ ...prev, specifications: newSpecs }));
+                          }}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          const newSpecs = [...formData.specifications];
+                          newSpecs.splice(index, 1);
+                          setFormData((prev) => ({ ...prev, specifications: newSpecs }));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full mt-2 border-dashed"
+                    onClick={() => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        specifications: [...prev.specifications, { name: "", value: "" }],
+                      }));
+                    }}
+                  >
+                    + Add Specification
+                  </Button>
+                </div>
+
+                <div className="border-t border-zinc-100 pt-6">
                   <Label className="text-sm font-medium text-zinc-900">
                     Dimensions (L x W x H)
                   </Label>
@@ -586,7 +689,6 @@ export default function NewProductPage() {
                 <Select
                   value={formData.category}
                   onValueChange={(val) => setFormData((prev) => ({ ...prev, category: val ?? "" }))}
-                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="— Select Category —" />

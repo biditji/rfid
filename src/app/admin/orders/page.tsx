@@ -2,12 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { fetchAllOrders, updateOrderStatus } from "@/lib/api";
-import { formatCurrency, cn } from "@/lib/utils";
-import { Package, Search, ChevronRight } from "lucide-react";
+import { formatCurrency, cn, getServerUrl } from "@/lib/utils";
+import { Package, Search, ChevronRight, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   useEffect(() => {
     async function loadOrders() {
@@ -34,8 +41,10 @@ export default function AdminOrdersPage() {
       
       await updateOrderStatus(orderId, newStatus, token);
       
-      // Update local state to reflect change instantly
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
+      if (selectedOrder && selectedOrder._id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
     } catch (error) {
       console.error("Failed to update status", error);
       alert("Failed to update status");
@@ -97,7 +106,16 @@ export default function AdminOrdersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-zinc-900">{order.user?.name || "Unknown"}</div>
-                      <div className="text-xs text-zinc-500">{order.user?.email || "No email"}</div>
+                      <div className="text-xs text-zinc-500 mb-2">{order.user?.email || "No email"}</div>
+                      
+                      {order.phoneNumber && (
+                        <div className="text-xs font-medium text-zinc-700 mt-1">📞 {order.phoneNumber}</div>
+                      )}
+                      {order.shippingAddress && (
+                        <div className="text-xs text-zinc-500 line-clamp-2 max-w-[250px] mt-0.5" title={order.shippingAddress}>
+                          📍 {order.shippingAddress}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {new Date(order.createdAt).toLocaleDateString()}
@@ -124,7 +142,10 @@ export default function AdminOrdersPage() {
                       {formatCurrency(order.totalPrice)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-blue-600 hover:text-blue-800 font-medium flex items-center justify-end gap-1 w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => setSelectedOrder(order)}
+                        className="text-blue-600 hover:text-blue-800 font-medium flex items-center justify-end gap-1 w-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
                         View <ChevronRight className="h-4 w-4" />
                       </button>
                     </td>
@@ -135,6 +156,67 @@ export default function AdminOrdersPage() {
           </table>
         </div>
       </div>
+
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              Order #{selectedOrder?._id.substring(selectedOrder._id.length - 8).toUpperCase()}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedOrder && (
+            <div className="mt-4 space-y-6">
+              <div className="grid grid-cols-2 gap-6 bg-zinc-50 p-4 rounded-lg border border-zinc-100">
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Customer Details</h4>
+                  <div className="text-sm font-medium text-zinc-900">{selectedOrder.user?.name || "Unknown"}</div>
+                  <div className="text-sm text-zinc-600">{selectedOrder.user?.email || "No email"}</div>
+                  {selectedOrder.phoneNumber && (
+                    <div className="text-sm text-zinc-600 mt-1">📞 {selectedOrder.phoneNumber}</div>
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Shipping Address</h4>
+                  <div className="text-sm text-zinc-600 whitespace-pre-wrap">
+                    {selectedOrder.shippingAddress || "No shipping address provided"}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 border-b border-zinc-200 pb-2 mb-4">Order Items</h4>
+                <ul className="space-y-4">
+                  {selectedOrder.items.map((item: any, idx: number) => {
+                    const product = item.product;
+                    if (!product) return null;
+                    const imageUrl = product.images?.[0] ? getServerUrl(product.images[0]) : "/placeholder.png";
+
+                    return (
+                      <li key={idx} className="flex gap-4">
+                        <img src={imageUrl} alt={product.name} className="h-16 w-16 rounded-md object-cover border border-zinc-200" />
+                        <div className="flex-1">
+                          <h5 className="text-sm font-medium text-zinc-900">{product.name}</h5>
+                          <p className="text-xs text-zinc-500">SKU: {product.sku}</p>
+                          <div className="mt-1 flex justify-between items-center">
+                            <span className="text-sm text-zinc-600">Qty: {item.quantity}</span>
+                            <span className="text-sm font-medium text-zinc-900">{formatCurrency(item.priceAtPurchase * item.quantity)}</span>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <div className="border-t border-zinc-200 pt-4 flex justify-between items-center">
+                <span className="text-sm font-medium text-zinc-600">Total Amount Paid</span>
+                <span className="text-lg font-bold text-zinc-900">{formatCurrency(selectedOrder.totalPrice)}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -178,7 +178,7 @@ export function ProductDetailContent({
                 {
                   icon: Truck,
                   label: "Free shipping",
-                  sub: "Orders over $500",
+                  sub: "Orders over ₹500",
                 },
                 {
                   icon: Package,

@@ -102,9 +102,10 @@ export default async function ProductPage({ params }: Props) {
 
             <div className="mt-6">
               <h3 className="sr-only">Description</h3>
-              <div className="space-y-6 text-base text-zinc-700">
-                <p>{product.description}</p>
-              </div>
+              <div 
+                className="prose prose-zinc max-w-none text-zinc-700 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-zinc-200 prose-th:bg-zinc-50 prose-th:p-3 prose-th:text-left prose-td:border prose-td:border-zinc-200 prose-td:p-3 prose-img:rounded-lg prose-img:border prose-img:border-zinc-200"
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
             </div>
 
             <div className="mt-8 border-t border-zinc-200 pt-8">
@@ -176,6 +177,27 @@ export default async function ProductPage({ params }: Props) {
                   <div className="flex flex-col border-b border-zinc-100 pb-2 sm:col-span-2">
                     <dt className="text-zinc-500 font-medium">Tags</dt>
                     <dd className="text-zinc-900 mt-1">{product.productTags}</dd>
+                  </div>
+                )}
+                {product.specifications && product.specifications.length > 0 && (
+                  <div className="sm:col-span-2 mt-6">
+                    <h4 className="text-sm font-semibold text-zinc-900 mb-3 uppercase tracking-wider">Technical Data</h4>
+                    <div className="overflow-hidden rounded-lg border border-zinc-200">
+                      <table className="w-full border-collapse text-sm">
+                        <tbody>
+                          {product.specifications.map((spec: any, idx: number) => (
+                            <tr key={idx} className="border-b border-zinc-200 last:border-0">
+                              <td className="py-3 px-4 font-medium text-zinc-700 bg-zinc-100/80 w-1/3 border-r border-zinc-200 align-top">
+                                {spec.name}
+                              </td>
+                              <td className="py-3 px-4 text-zinc-900 bg-white align-top">
+                                {spec.value}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </dl>

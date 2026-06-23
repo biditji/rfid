@@ -1,4 +1,7 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const isServer = typeof window === 'undefined';
+const API_URL = isServer
+  ? 'https://backend.indiarfidshop.com/api'
+  : (process.env.NEXT_PUBLIC_API_URL || 'https://backend.indiarfidshop.com/api');
 
 export async function fetchProducts() {
   try {
@@ -256,13 +259,27 @@ export async function updateCartQuantity(productId: string, quantity: number, to
   return await res.json();
 }
 
-export async function createOrder(token: string) {
-  const res = await fetch(`${API_URL}/orders`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to create order');
-  return await res.json();
+export async function createOrder(
+  shippingAddress: string,
+  phoneNumber: string,
+  token?: string
+) {
+  try {
+    const res = await fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ shippingAddress, phoneNumber }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to create order');
+    return data;
+  } catch (error) {
+    console.error('Error creating order:', error);
+    throw error;
+  }
 }
 
 export async function verifyRazorpayPayment(data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }, token: string) {
