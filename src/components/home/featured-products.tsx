@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Package } from "lucide-react";
 import { FadeIn } from "@/components/shared/fade-in";
 import { fetchProducts } from "@/lib/api";
-import { formatCurrency, getServerUrl } from "@/lib/utils";
+import { formatCurrency, getServerUrl, stripHtml } from "@/lib/utils";
 
 export function FeaturedProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -106,7 +106,7 @@ export function FeaturedProducts() {
                         {product.name}
                       </h3>
                       <p className="mt-3 text-sm text-zinc-500 line-clamp-2">
-                        {product.description}
+                        {stripHtml(product.description)}
                       </p>
                     </div>
                     

@@ -53,9 +53,18 @@ export function getStockStatus(stock: number): {
   return { label: "In Stock", color: "emerald" };
 }
 
+/**
+ * Strip HTML tags from a string, returning plain text.
+ * Useful for showing rich-text descriptions as excerpts.
+ */
+export function stripHtml(html: string): string {
+  if (!html) return "";
+  return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+}
+
 export function getServerUrl(path: string): string {
   if (!path) return "/placeholder.png";
   if (path.startsWith('http')) return path;
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 }

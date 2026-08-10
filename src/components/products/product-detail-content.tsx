@@ -13,7 +13,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { Product } from "@/types";
-import { formatCurrency, getStockStatus, cn } from "@/lib/utils";
+import { formatCurrency, getStockStatus, cn, getServerUrl, stripHtml } from "@/lib/utils";
 import { FadeIn } from "@/components/shared/fade-in";
 
 interface ProductDetailContentProps {
@@ -26,6 +26,7 @@ export function ProductDetailContent({
   relatedProducts,
 }: ProductDetailContentProps) {
   const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "docs">(
     "description"
   );
@@ -61,35 +62,49 @@ export function ProductDetailContent({
           <div className="space-y-3">
             <div className="aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
               <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-zinc-200/50">
-                    <span className="text-3xl font-bold text-zinc-300">
-                      {product.name.charAt(0)}
-                    </span>
+                {product.images && product.images.length > 0 ? (
+                  <img
+                    src={getServerUrl(product.images[selectedImage])}
+                    alt={product.name}
+                    className="h-full w-full object-contain p-4"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-zinc-200/50">
+                      <span className="text-3xl font-bold text-zinc-300">
+                        {product.name.charAt(0)}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm text-zinc-400">
+                      {product.category}
+                    </p>
                   </div>
-                  <p className="mt-3 text-sm text-zinc-400">
-                    {product.category}
-                  </p>
-                </div>
+                )}
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "aspect-square cursor-pointer overflow-hidden rounded-lg border bg-zinc-50",
-                    i === 0
-                      ? "border-zinc-400"
-                      : "border-zinc-200 opacity-60 hover:opacity-100"
-                  )}
-                >
-                  <div className="flex h-full items-center justify-center">
-                    <span className="text-xs text-zinc-400">View {i + 1}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {product.images && product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {product.images.slice(0, 4).map((img: string, i: number) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedImage(i)}
+                    className={cn(
+                      "aspect-square cursor-pointer overflow-hidden rounded-lg border bg-zinc-50",
+                      i === selectedImage
+                        ? "border-zinc-400"
+                        : "border-zinc-200 opacity-60 hover:opacity-100"
+                    )}
+                  >
+                    <img
+                      src={getServerUrl(img)}
+                      alt={`${product.name} view ${i + 1}`}
+                      className="h-full w-full object-contain p-2"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </FadeIn>
 
@@ -135,7 +150,7 @@ export function ProductDetailContent({
             </div>
 
             <p className="mt-4 leading-relaxed text-zinc-600">
-              {product.shortDescription}
+              {stripHtml(product.shortDescription || product.description)}
             </p>
 
             {/* Quantity + Add to Cart */}
@@ -242,9 +257,10 @@ export function ProductDetailContent({
           <div className="py-8">
             {activeTab === "description" && (
               <div className="max-w-3xl">
-                <p className="leading-relaxed text-zinc-600">
-                  {product.description}
-                </p>
+                <div
+                  className="prose prose-zinc max-w-none leading-relaxed text-zinc-600"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
                 {product.features.length > 0 && (
                   <div className="mt-6">
                     <h3 className="text-sm font-semibold text-zinc-900">

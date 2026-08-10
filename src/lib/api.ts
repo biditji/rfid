@@ -1,7 +1,4 @@
-const isServer = typeof window === 'undefined';
-const API_URL = isServer
-  ? 'https://backend.indiarfidshop.com/api'
-  : (process.env.NEXT_PUBLIC_API_URL || 'https://backend.indiarfidshop.com/api');
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export async function fetchProducts() {
   try {

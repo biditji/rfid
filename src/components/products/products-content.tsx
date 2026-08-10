@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { formatCurrency, getStockStatus, cn, getServerUrl } from "@/lib/utils";
+import { formatCurrency, getStockStatus, cn, getServerUrl, stripHtml } from "@/lib/utils";
 import { FadeIn } from "@/components/shared/fade-in";
 
 const sortOptions = [
@@ -28,7 +28,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
+          stripHtml(p.description).toLowerCase().includes(q) ||
           p.sku.toLowerCase().includes(q) ||
           (p.productTags && p.productTags.toLowerCase().includes(q))
       );
@@ -254,7 +254,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
                           {product.name}
                         </h3>
                         <p className="mt-1.5 text-xs text-zinc-500 line-clamp-2">
-                          {product.description}
+                          {stripHtml(product.description)}
                         </p>
                         <div className="mt-auto flex items-center justify-between pt-4">
                           <div className="flex items-baseline gap-1.5">

@@ -19,7 +19,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { FadeIn } from "@/components/shared/fade-in";
 import { fetchProducts } from "@/lib/api";
-import { formatCurrency, getServerUrl } from "@/lib/utils";
+import { formatCurrency, getServerUrl, stripHtml } from "@/lib/utils";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -316,7 +316,7 @@ export function HeroSection() {
                   </h2>
 
                   <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-500 sm:text-base">
-                    {currentProduct.description}
+                    {stripHtml(currentProduct.description)}
                   </p>
 
                   <div className="mt-5 flex items-baseline gap-3">
