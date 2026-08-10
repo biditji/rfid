@@ -325,11 +325,16 @@ export async function uploadImage(file: File, token: string) {
   });
 
   if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || 'Failed to upload image');
+    try {
+      const errData = await res.json();
+      throw new Error(errData.message || 'Failed to upload image');
+    } catch {
+      throw new Error('Failed to upload image');
+    }
   }
 
-  return await res.text(); // Returns the path string
+  const path = await res.json(); // Returns the path string
+  return path as string;
 }
 
 export async function uploadImages(files: File[], token: string) {
@@ -347,8 +352,12 @@ export async function uploadImages(files: File[], token: string) {
   });
 
   if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || 'Failed to upload images');
+    try {
+      const errData = await res.json();
+      throw new Error(errData.message || 'Failed to upload images');
+    } catch {
+      throw new Error('Failed to upload images');
+    }
   }
 
   return await res.json(); // Returns array of path strings
