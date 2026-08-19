@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,8 +18,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FadeIn } from "@/components/shared/fade-in";
-import { fetchProducts } from "@/lib/api";
-import { formatCurrency, getServerUrl, stripHtml } from "@/lib/utils";
+import { ProductImage } from "@/components/shared/product-image";
+import type { ProductCard } from "@/lib/products";
+import { formatCurrency } from "@/lib/utils";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -35,14 +36,17 @@ const categories = [
   { name: "Accessories", slug: "accessories", icon: Wrench, color: "from-zinc-500/10 to-zinc-600/5", border: "border-zinc-200/60", text: "text-zinc-700", iconBg: "bg-zinc-500" },
 ];
 
-const SPOTLIGHT_COUNT = 3;
-const QUICK_BROWSE_COUNT = 4;
 const AUTO_ROTATE_MS = 5000;
 
-export function HeroSection() {
+type HeroSectionProps = {
+  /** Products rendered in the rotating spotlight — already fetched on the server. */
+  spotlight: ProductCard[];
+  /** Products rendered in the 4-up grid below the spotlight. */
+  quickBrowse: ProductCard[];
+};
+
+export function HeroSection({ spotlight, quickBrowse }: HeroSectionProps) {
   const router = useRouter();
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeSpotlight, setActiveSpotlight] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isPaused, setIsPaused] = useState(false);
@@ -56,11 +60,15 @@ export function HeroSection() {
   const orbsRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
+    // Respect the OS-level motion preference and skip the whole intro timeline
+    // for users who asked for less animation.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
     const tl = gsap.timeline();
 
     // Text stagger reveal
     if (textRef.current) {
-      tl.fromTo(textRef.current.children, 
+      tl.fromTo(textRef.current.children,
         { y: 40, opacity: 0 },
         {
           y: 0,
@@ -74,7 +82,7 @@ export function HeroSection() {
 
     // Search bar reveal
     if (searchRef.current) {
-      tl.fromTo(searchRef.current, 
+      tl.fromTo(searchRef.current,
         { y: 20, opacity: 0 },
         {
           y: 0,
@@ -87,7 +95,7 @@ export function HeroSection() {
 
     // Category pills stagger
     if (pillsRef.current) {
-      tl.fromTo(pillsRef.current.children, 
+      tl.fromTo(pillsRef.current.children,
         { scale: 0.8, opacity: 0 },
         {
           scale: 1,
@@ -101,7 +109,7 @@ export function HeroSection() {
 
     // Spotlight fade in
     if (spotlightRef.current) {
-      tl.fromTo(spotlightRef.current, 
+      tl.fromTo(spotlightRef.current,
         { y: 50, opacity: 0 },
         {
           y: 0,
@@ -127,46 +135,29 @@ export function HeroSection() {
     }
   }, { scope: heroRef });
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await fetchProducts();
-        setProducts(data);
-      } catch (err) {
-        console.error("Failed to fetch products", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  const spotlightProducts = products.slice(0, SPOTLIGHT_COUNT);
-  const quickBrowseProducts = products.slice(SPOTLIGHT_COUNT, SPOTLIGHT_COUNT + QUICK_BROWSE_COUNT);
-
   const goNext = useCallback(() => {
-    if (spotlightProducts.length === 0) return;
+    if (spotlight.length === 0) return;
     setDirection(1);
-    setActiveSpotlight((prev) => (prev + 1) % spotlightProducts.length);
-  }, [spotlightProducts.length]);
+    setActiveSpotlight((prev) => (prev + 1) % spotlight.length);
+  }, [spotlight.length]);
 
   const goPrev = useCallback(() => {
-    if (spotlightProducts.length === 0) return;
+    if (spotlight.length === 0) return;
     setDirection(-1);
-    setActiveSpotlight((prev) => (prev - 1 + spotlightProducts.length) % spotlightProducts.length);
-  }, [spotlightProducts.length]);
+    setActiveSpotlight((prev) => (prev - 1 + spotlight.length) % spotlight.length);
+  }, [spotlight.length]);
 
   // Auto-rotate
   useEffect(() => {
-    if (isPaused || spotlightProducts.length <= 1) return;
+    if (isPaused || spotlight.length <= 1) return;
     timerRef.current = setInterval(() => {
       setDirection(1);
-      setActiveSpotlight((prev) => (prev + 1) % spotlightProducts.length);
+      setActiveSpotlight((prev) => (prev + 1) % spotlight.length);
     }, AUTO_ROTATE_MS);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPaused, spotlightProducts.length]);
+  }, [isPaused, spotlight.length]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,7 +166,7 @@ export function HeroSection() {
     }
   };
 
-  const currentProduct = spotlightProducts[activeSpotlight];
+  const currentProduct = spotlight[activeSpotlight];
 
   const slideVariants = {
     enter: (dir: number) => ({
@@ -275,14 +266,7 @@ export function HeroSection() {
             <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-violet-200/20 blur-3xl animate-glow-pulse" style={{ animationDelay: "2s" }} />
           </div>
 
-          {loading ? (
-            <div className="flex h-[420px] items-center justify-center sm:h-[400px]">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-900" />
-                <span className="text-sm text-zinc-400">Loading products…</span>
-              </div>
-            </div>
-          ) : currentProduct ? (
+          {currentProduct ? (
             <div className="relative grid min-h-[420px] grid-cols-1 items-center gap-6 p-6 sm:min-h-[400px] sm:p-10 lg:grid-cols-2 lg:gap-12 lg:p-12">
               {/* Left: Product Info */}
               <AnimatePresence mode="wait" custom={direction}>
@@ -298,7 +282,7 @@ export function HeroSection() {
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                      {currentProduct.category?.name || "Equipment"}
+                      {currentProduct.categoryName || "Equipment"}
                     </span>
                     {currentProduct.stock > 0 ? (
                       <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
@@ -316,7 +300,7 @@ export function HeroSection() {
                   </h2>
 
                   <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-500 sm:text-base">
-                    {stripHtml(currentProduct.description)}
+                    {currentProduct.excerpt}
                   </p>
 
                   <div className="mt-5 flex items-baseline gap-3">
@@ -366,17 +350,16 @@ export function HeroSection() {
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="h-48 w-48 rounded-full bg-blue-100/40 blur-3xl sm:h-56 sm:w-56" />
                     </div>
-                    {currentProduct.images?.[0] ? (
-                      <img
-                        src={getServerUrl(currentProduct.images[0])}
-                        alt={currentProduct.name}
-                        className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl animate-hero-float"
-                      />
-                    ) : (
-                      <div className="relative z-10 flex flex-col items-center justify-center text-zinc-300 animate-hero-float">
-                        <Package className="h-24 w-24 sm:h-32 sm:w-32" />
-                      </div>
-                    )}
+                    <ProductImage
+                      src={currentProduct.image}
+                      alt={currentProduct.name}
+                      sizes="(max-width: 1024px) 90vw, 45vw"
+                      // The spotlight image is the LCP element — load it eagerly
+                      // for the first slide only.
+                      priority={activeSpotlight === 0}
+                      className="relative z-10 object-contain drop-shadow-2xl animate-hero-float"
+                      fallbackClassName="relative z-10 animate-hero-float"
+                    />
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -384,7 +367,7 @@ export function HeroSection() {
               {/* Spotlight nav controls */}
               <div className="absolute bottom-5 left-6 right-6 z-20 flex items-center justify-between sm:bottom-8 sm:left-10 sm:right-10 lg:left-12 lg:right-12">
                 <div className="flex items-center gap-2">
-                  {spotlightProducts.map((_, idx) => (
+                  {spotlight.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => {
@@ -426,7 +409,7 @@ export function HeroSection() {
         </div>
 
         {/* ─── ZONE 3: Quick Browse Grid ─── */}
-        {!loading && quickBrowseProducts.length > 0 && (
+        {quickBrowse.length > 0 && (
           <FadeIn delay={0.15}>
             <div className="mt-8 mb-6 sm:mt-10 sm:mb-8">
               <div className="flex items-center justify-between mb-5">
@@ -443,57 +426,48 @@ export function HeroSection() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                {quickBrowseProducts.map((product, idx) => {
-                  const imageUrl = product.images?.[0]
-                    ? getServerUrl(product.images[0])
-                    : null;
-
-                  return (
-                    <FadeIn key={product._id} delay={0.05 * idx}>
-                      <Link
-                        href={`/products/${product.slug}`}
-                        className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-100 bg-white transition-all duration-300 hover:border-zinc-200 hover:shadow-xl hover:shadow-zinc-200/40 hover:-translate-y-1"
-                      >
-                        {/* Product image */}
-                        <div className="relative flex h-36 items-center justify-center bg-zinc-50/60 p-4 sm:h-44 sm:p-6">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={product.name}
-                              className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-110"
-                            />
-                          ) : (
-                            <Package className="h-12 w-12 text-zinc-300 transition-transform duration-500 group-hover:scale-110" />
-                          )}
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/0 transition-colors duration-300 group-hover:bg-zinc-900/5">
-                            <span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-zinc-900 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-300 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                              View Details →
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Product info */}
-                        <div className="flex flex-1 flex-col p-3.5 sm:p-4">
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:text-xs">
-                            {product.category?.name || "Equipment"}
+                {quickBrowse.map((product, idx) => (
+                  <FadeIn key={product._id} delay={0.05 * idx}>
+                    <Link
+                      href={`/products/${product.slug}`}
+                      className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-100 bg-white transition-all duration-300 hover:border-zinc-200 hover:shadow-xl hover:shadow-zinc-200/40 hover:-translate-y-1"
+                    >
+                      {/* Product image */}
+                      <div className="relative flex h-36 items-center justify-center bg-zinc-50/60 p-4 sm:h-44 sm:p-6">
+                        <ProductImage
+                          src={product.image}
+                          alt={product.name}
+                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 300px"
+                          className="p-4 object-contain transition-transform duration-500 group-hover:scale-110 sm:p-6"
+                        />
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-900/0 transition-colors duration-300 group-hover:bg-zinc-900/5">
+                          <span className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-zinc-900 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-300 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                            View Details →
                           </span>
-                          <h4 className="mt-1 text-sm font-semibold leading-tight text-zinc-900 line-clamp-1 group-hover:text-blue-600 transition-colors sm:text-base">
-                            {product.name}
-                          </h4>
-                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-base font-bold text-zinc-900 sm:text-lg">
-                              {formatCurrency(product.price)}
-                            </span>
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-all group-hover:bg-zinc-900 group-hover:text-white sm:h-8 sm:w-8">
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </div>
+                        </div>
+                      </div>
+
+                      {/* Product info */}
+                      <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 sm:text-xs">
+                          {product.categoryName || "Equipment"}
+                        </span>
+                        <h4 className="mt-1 text-sm font-semibold leading-tight text-zinc-900 line-clamp-1 group-hover:text-blue-600 transition-colors sm:text-base">
+                          {product.name}
+                        </h4>
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-base font-bold text-zinc-900 sm:text-lg">
+                            {formatCurrency(product.price)}
+                          </span>
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-all group-hover:bg-zinc-900 group-hover:text-white sm:h-8 sm:w-8">
+                            <ArrowRight className="h-3.5 w-3.5" />
                           </div>
                         </div>
-                      </Link>
-                    </FadeIn>
-                  );
-                })}
+                      </div>
+                    </Link>
+                  </FadeIn>
+                ))}
               </div>
             </div>
           </FadeIn>

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
   X,
@@ -151,45 +150,48 @@ export function Header() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-zinc-100 md:hidden"
-          >
-            <nav className="space-y-1 px-4 py-3">
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    "block rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                    pathname === item.href
-                      ? "bg-zinc-100 text-zinc-900"
-                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <div className="border-t border-zinc-100 pt-3">
-                <Link
-                  href="/contact"
-                  onClick={() => setMobileOpen(false)}
-                  className="block rounded-lg bg-slate-900 px-3 py-2.5 text-center text-sm font-medium text-white"
-                >
-                  Get a Quote
-                </Link>
-              </div>
-            </nav>
-          </motion.div>
+      {/* Mobile Menu — a CSS grid-rows transition rather than framer-motion's
+          AnimatePresence, so the whole animation library isn't shipped to every
+          page for one collapsing panel. */}
+      <div
+        className={cn(
+          "grid overflow-hidden border-t border-zinc-100 transition-[grid-template-rows,opacity] duration-200 ease-out md:hidden",
+          mobileOpen
+            ? "grid-rows-[1fr] opacity-100"
+            : "grid-rows-[0fr] border-transparent opacity-0"
         )}
-      </AnimatePresence>
+      >
+        <div className="min-h-0 overflow-hidden">
+          <nav className="space-y-1 px-4 py-3">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                tabIndex={mobileOpen ? 0 : -1}
+                className={cn(
+                  "block rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  pathname === item.href
+                    ? "bg-zinc-100 text-zinc-900"
+                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <div className="border-t border-zinc-100 pt-3">
+              <Link
+                href="/contact"
+                onClick={() => setMobileOpen(false)}
+                tabIndex={mobileOpen ? 0 : -1}
+                className="block rounded-lg bg-slate-900 px-3 py-2.5 text-center text-sm font-medium text-white"
+              >
+                Get a Quote
+              </Link>
+            </div>
+          </nav>
+        </div>
+      </div>
     </header>
   );
 }

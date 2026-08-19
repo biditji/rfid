@@ -65,6 +65,11 @@ export function stripHtml(html: string): string {
 export function getServerUrl(path: string): string {
   if (!path) return "/placeholder.png";
   if (path.startsWith('http')) return path;
-  const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  // Falls back to the HTTPS host, never plain http: an http:// image URL on an
+  // HTTPS page is blocked by the browser as mixed content.
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SERVER_URL ||
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') ||
+    'https://backend.indiarfidshop.com';
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 }

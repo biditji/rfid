@@ -1,62 +1,154 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://backend.indiarfidshop.com/api';
 
-export async function fetchProducts() {
-  try {
-    // Note: cache: 'no-store' ensures it fetches fresh data every time for development
-    const res = await fetch(`${API_URL}/products`, { cache: 'no-store' });
-    
-    if (!res.ok) {
-      throw new Error(`Failed to fetch products: ${res.status}`);
+const isServer = typeof window === 'undefined';
+
+/**
+ * How long the server may reuse a cached response for a public read.
+ * The backend's /products endpoint intermittently takes 20-30s to answer, so
+ * without this every single visitor pays that cost. With it, one unlucky
+ * request warms the cache and everyone else is served instantly.
+ */
+export const REVALIDATE = {
+  products: 300,
+  categories: 600,
+} as const;
+
+/** Abort a read that hangs, instead of blocking a render indefinitely. */
+const READ_TIMEOUT_MS = 45_000;
+
+type ReadOptions = {
+  /** Seconds the Next.js server may serve this response from cache. */
+  revalidate?: number;
+  /** Cache tags, so an admin mutation can flush the public cache on demand. */
+  tags?: string[];
+  timeoutMs?: number;
+  retries?: number;
+};
+
+/**
+ * GET a public endpoint with a hard timeout and one retry.
+ *
+ * On the server the response is cached for `revalidate` seconds. In the browser
+ * (the admin panel) it always goes to the network, so admins never see stale data.
+ */
+async function readJson<T>(
+  path: string,
+  { revalidate = 0, tags, timeoutMs = READ_TIMEOUT_MS, retries = 1 }: ReadOptions = {}
+): Promise<T> {
+  const init: RequestInit = isServer
+    ? { next: { revalidate, ...(tags ? { tags } : {}) } }
+    : { cache: 'no-store' };
+
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(`${API_URL}${path}`, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (res.status === 404) {
+        const notFound = new Error(`Not found: ${path}`);
+        (notFound as any).status = 404;
+        throw notFound;
+      }
+
+      // Retry 5xx (backend restart / cold start), but not 4xx.
+      if (!res.ok) {
+        const err = new Error(`Request failed: ${path} -> ${res.status}`);
+        (err as any).status = res.status;
+        if (res.status < 500 || attempt === retries) throw err;
+        lastError = err;
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        continue;
+      }
+
+      return (await res.json()) as T;
+    } catch (error) {
+      if ((error as any)?.status === 404) throw error;
+      lastError = error;
+      if (attempt === retries) break;
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
     }
-    
-    const data = await res.json();
-    return data.products || data;
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Request failed: ${path}`);
+}
+
+
+/**
+ * Catalog fetch that reports failure instead of hiding it behind an empty array.
+ * A caller that prerenders needs to tell "the shop has no products" apart from
+ * "the backend didn't answer in time" — caching the latter as a static page
+ * leaves the site showing "No products available" until the next revalidation.
+ */
+export async function fetchProductsResult(): Promise<{ products: any[]; ok: boolean }> {
+  try {
+    const data = await readJson<any>('/products', {
+      revalidate: REVALIDATE.products,
+      tags: ['products'],
+      retries: 2,
+    });
+    const products = data?.products ?? data;
+    return { products: Array.isArray(products) ? products : [], ok: true };
   } catch (error) {
     console.error('Error fetching products:', error);
-    return [];
+    return { products: [], ok: false };
   }
+}
+
+export async function fetchProducts() {
+  return (await fetchProductsResult()).products;
 }
 
 export async function fetchProductBySlug(slug: string) {
   try {
-    const res = await fetch(`${API_URL}/products/slug/${slug}`, { 
-      cache: 'no-store' // Disable aggressive cache during development
+    return await readJson<any>(`/products/slug/${encodeURIComponent(slug)}`, {
+      revalidate: REVALIDATE.products,
+      tags: ['products', `product:${slug}`],
     });
-    
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      throw new Error(`Failed to fetch product: ${res.status}`);
-    }
-    
-    return await res.json();
   } catch (error) {
+    if ((error as any)?.status === 404) return null;
     console.error('Error fetching product by slug:', error);
     return null;
   }
 }
 
-export async function fetchCategories(filters?: { name?: string; status?: string }) {
+/** Category fetch that reports failure — see `fetchProductsResult`. */
+export async function fetchCategoriesResult(filters?: {
+  name?: string;
+  status?: string;
+}): Promise<{ categories: any[]; ok: boolean }> {
   try {
     const params = new URLSearchParams();
     if (filters?.name) params.set('name', filters.name);
     if (filters?.status !== undefined && filters?.status !== '') params.set('status', filters.status);
     const query = params.toString() ? `?${params.toString()}` : '';
-    const res = await fetch(`${API_URL}/categories${query}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
-    return await res.json();
+    const data = await readJson<any>(`/categories${query}`, {
+      revalidate: REVALIDATE.categories,
+      tags: ['categories'],
+    });
+    const categories = data?.categories ?? data;
+    return { categories: Array.isArray(categories) ? categories : [], ok: true };
   } catch (error) {
     console.error('Error fetching categories:', error);
-    return [];
+    return { categories: [], ok: false };
   }
 }
 
+export async function fetchCategories(filters?: { name?: string; status?: string }) {
+  return (await fetchCategoriesResult(filters)).categories;
+}
+
 export async function fetchCategoryById(id: string) {
-  const res = await fetch(`${API_URL}/categories/${id}`, { cache: 'no-store' });
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    throw new Error(`Failed to fetch category: ${res.status}`);
+  try {
+    return await readJson<any>(`/categories/${id}`);
+  } catch (error) {
+    if ((error as any)?.status === 404) return null;
+    throw error;
   }
-  return await res.json();
 }
 
 export async function createCategory(data: any, token: string) {
@@ -148,12 +240,12 @@ export async function createProduct(data: any, token: string) {
 }
 
 export async function fetchProductById(id: string) {
-  const res = await fetch(`${API_URL}/products/${id}`, { cache: 'no-store' });
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    throw new Error(`Failed to fetch product: ${res.status}`);
+  try {
+    return await readJson<any>(`/products/${id}`);
+  } catch (error) {
+    if ((error as any)?.status === 404) return null;
+    throw error;
   }
-  return await res.json();
 }
 
 export async function updateProduct(id: string, data: any, token: string) {

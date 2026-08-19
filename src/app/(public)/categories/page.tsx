@@ -9,7 +9,7 @@ import {
   Wrench,
   ArrowRight,
 } from "lucide-react";
-import { fetchCategories } from "@/lib/api";
+import { getCategories } from "@/lib/products";
 import { FadeIn } from "@/components/shared/fade-in";
 
 export const metadata: Metadata = {
@@ -36,8 +36,10 @@ const categoryImages: Record<string, string> = {
   "Accessories": "bg-zinc-100",
 };
 
+export const revalidate = 600;
+
 export default async function CategoriesPage() {
-  const categories = await fetchCategories();
+  const categories = await getCategories();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCategories, fetchCategoryById, updateCategory, uploadImage } from "@/lib/api";
+import { revalidateCategories } from "@/lib/revalidate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -131,6 +132,8 @@ export default function EditCategoryPage({ params }: { params: Promise<{ id: str
       };
 
       await updateCategory(id, payload, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateCategories();
 
       setSuccess("Category updated successfully!");
       setTimeout(() => router.push("/admin/categories"), 1500);

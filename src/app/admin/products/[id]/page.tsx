@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCategories, fetchProductById, updateProduct, uploadImages } from "@/lib/api";
+import { revalidateProducts } from "@/lib/revalidate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -272,6 +273,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       };
 
       await updateProduct(id, payload, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateProducts();
 
       setSuccess("Product updated successfully!");
       setTimeout(() => router.push("/admin/products"), 1500);

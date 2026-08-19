@@ -3,8 +3,10 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { formatCurrency, getStockStatus, cn, getServerUrl, stripHtml } from "@/lib/utils";
+import { formatCurrency, getStockStatus, cn } from "@/lib/utils";
 import { FadeIn } from "@/components/shared/fade-in";
+import { ProductImage } from "@/components/shared/product-image";
+import type { ProductCard } from "@/lib/products";
 
 const sortOptions = [
   { label: "Newest", value: "newest" },
@@ -13,9 +15,23 @@ const sortOptions = [
   { label: "Name: A → Z", value: "name-asc" },
 ];
 
-export function ProductsContent({ products = [], categories = [] }: { products?: any[], categories?: any[] }) {
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+type Category = { id: string; name: string };
+
+export function ProductsContent({
+  products = [],
+  categories = [],
+  initialSearch = "",
+  initialCategory = null,
+}: {
+  products?: ProductCard[];
+  categories?: Category[];
+  /** Seeded from ?search= on the server, so the first paint is already filtered. */
+  initialSearch?: string;
+  /** Seeded from ?category= on the server (resolved from slug to category name). */
+  initialCategory?: string | null;
+}) {
+  const [search, setSearch] = useState(initialSearch);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -24,19 +40,14 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
     let result = [...products];
 
     if (search) {
+      // `searchText` is pre-built and pre-lowercased on the server, so filtering
+      // is a plain substring test instead of stripping HTML on every keystroke.
       const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          stripHtml(p.description).toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q) ||
-          (p.productTags && p.productTags.toLowerCase().includes(q))
-      );
+      result = result.filter((p) => p.searchText.includes(q));
     }
 
     if (selectedCategory) {
-      // Handle both populated category object { name: '...' } and string ID
-      result = result.filter((p) => p.category?.name === selectedCategory || p.category === selectedCategory);
+      result = result.filter((p) => p.categoryName === selectedCategory);
     }
 
     if (inStockOnly) {
@@ -56,7 +67,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
       default:
         result.sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
         );
     }
 
@@ -156,7 +167,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
                 >
                   {cat.name}
                   <span className="text-xs text-zinc-400">
-                    
+                    {products.filter((p) => p.categoryName === cat.name).length}
                   </span>
                 </button>
               ))}
@@ -208,17 +219,18 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
               {filtered.map((product, idx) => {
                 const stock = getStockStatus(product.stock);
                 return (
-                  <FadeIn key={product._id || product.id || idx} delay={Math.min(idx * 0.03, 0.3)}>
+                  <FadeIn key={product._id} delay={Math.min(idx * 0.03, 0.3)}>
                     <Link
                       href={`/products/${product.slug}`}
                       className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
                     >
                       <div className="relative aspect-[3/2] bg-zinc-100 overflow-hidden">
-                        {product.images && product.images.length > 0 ? (
-                          <img
-                            src={getServerUrl(product.images[0])}
+                        {product.image ? (
+                          <ProductImage
+                            src={product.image}
                             alt={product.name}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 380px"
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center p-6">
@@ -229,18 +241,18 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
                                 </span>
                               </div>
                               <p className="mt-2 text-xs text-zinc-400">
-                                {product.category?.name || "Uncategorized"}
+                                {product.categoryName || "Uncategorized"}
                               </p>
                             </div>
                           </div>
                         )}
                         {product.compareAtPrice && (
-                          <span className="absolute left-3 top-3 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          <span className="absolute left-3 top-3 z-10 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                             Sale
                           </span>
                         )}
                         {stock.color === "red" && (
-                          <span className="absolute right-3 top-3 rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                          <span className="absolute right-3 top-3 z-10 rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
                             Sold Out
                           </span>
                         )}
@@ -254,7 +266,7 @@ export function ProductsContent({ products = [], categories = [] }: { products?:
                           {product.name}
                         </h3>
                         <p className="mt-1.5 text-xs text-zinc-500 line-clamp-2">
-                          {stripHtml(product.description)}
+                          {product.excerpt}
                         </p>
                         <div className="mt-auto flex items-center justify-between pt-4">
                           <div className="flex items-baseline gap-1.5">

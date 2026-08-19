@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCategories, createCategory, uploadImage } from "@/lib/api";
+import { revalidateCategories } from "@/lib/revalidate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -109,6 +110,8 @@ export default function NewCategoryPage() {
       };
 
       await createCategory(payload, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateCategories();
 
       setSuccess("Category created successfully!");
       setTimeout(() => router.push("/admin/categories"), 1500);

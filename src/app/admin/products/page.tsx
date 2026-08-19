@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { fetchProducts, deleteProduct, deleteProductsBulk } from "@/lib/api";
+import { revalidateProducts } from "@/lib/revalidate";
 import { formatCurrency, cn, getServerUrl } from "@/lib/utils";
 import {
   Package,
@@ -99,6 +100,8 @@ export default function AdminProductsPage() {
     try {
       const token = localStorage.getItem("rfid_token") || "";
       await deleteProduct(id, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateProducts();
       setSuccess("Product deleted successfully.");
       setSelectedIds((prev) => prev.filter((i) => i !== id));
       loadProducts();
@@ -115,6 +118,8 @@ export default function AdminProductsPage() {
     try {
       const token = localStorage.getItem("rfid_token") || "";
       await deleteProductsBulk(selectedIds, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateProducts();
       setSuccess(`${selectedIds.length} product(s) deleted.`);
       setSelectedIds([]);
       loadProducts();

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ImageGalleryProps {
+  /** Absolute URLs, already resolved against the backend origin. */
   images: string[];
   productName: string;
 }
@@ -29,18 +31,22 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Main Image */}
+      {/* Main Image — the LCP element on a product page, so it loads eagerly.
+          Originals are ~500 KB PNGs; <Image> serves a right-sized WebP instead. */}
       <div className="w-full max-w-2xl sm:block lg:max-w-none">
         <div className="aspect-square w-full overflow-hidden rounded-2xl bg-white border border-zinc-200 shadow-sm relative">
-          <img
+          <Image
             src={images[selectedIndex]}
             alt={`${productName} image ${selectedIndex + 1}`}
-            className="absolute inset-0 h-full w-full object-cover object-center"
+            fill
+            sizes="(max-width: 1024px) 100vw, 600px"
+            priority
+            className="object-cover object-center"
           />
         </div>
       </div>
 
-      {/* Thumbnails */}
+      {/* Thumbnails — small renditions, lazily loaded. */}
       {images.length > 1 && (
         <div className="mx-auto w-full max-w-2xl sm:block lg:max-w-none">
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
@@ -58,10 +64,12 @@ export function ImageGallery({ images, productName }: ImageGalleryProps) {
                 <span className="sr-only">
                   {productName} image {idx + 1}
                 </span>
-                <img
+                <Image
                   src={image}
                   alt={`${productName} thumbnail ${idx + 1}`}
-                  className="absolute inset-0 h-full w-full object-cover object-center"
+                  fill
+                  sizes="120px"
+                  className="object-cover object-center"
                 />
               </button>
             ))}

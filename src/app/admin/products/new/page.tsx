@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCategories, createProduct, uploadImages } from "@/lib/api";
+import { revalidateProducts } from "@/lib/revalidate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -202,6 +203,8 @@ export default function NewProductPage() {
       };
 
       await createProduct(payload, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateProducts();
 
       setSuccess("Product created successfully!");
       setTimeout(() => router.push("/admin/products"), 1500);

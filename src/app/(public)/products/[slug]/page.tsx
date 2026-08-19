@@ -1,6 +1,6 @@
 import { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
-import { fetchProductBySlug } from "@/lib/api";
+import { getProductBySlug, getProducts } from "@/lib/products";
 import { formatCurrency, getStockStatus, cn, getServerUrl } from "@/lib/utils";
 import { ShoppingCart, Package, ShieldCheck, Truck } from "lucide-react";
 import { AddToCartButton } from "@/components/products/add-to-cart-button";
@@ -11,13 +11,28 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+export const revalidate = 300;
+
+/**
+ * Prebuild the catalog's product pages so a visitor arriving from a search
+ * engine gets HTML immediately instead of waiting on a live backend call.
+ * Slugs not listed here are still rendered on demand and then cached.
+ */
+export async function generateStaticParams() {
+  const products = await getProducts();
+  if (!Array.isArray(products)) return [];
+  return products
+    .filter((p: any) => p?.slug)
+    .map((p: any) => ({ slug: String(p.slug) }));
+}
+
 // Generate SEO Metadata dynamically based on the product
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params;
-  const product = await fetchProductBySlug(slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     return { title: "Product Not Found | Virtualsphere" };
@@ -41,17 +56,23 @@ export async function generateMetadata(
 // Main Page Component
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const product = await fetchProductBySlug(slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     notFound();
   }
 
   const stockStatus = getStockStatus(product.stock);
-  // Construct the full image URLs assuming the backend runs on port 5000
-  const imageUrls = product.images && product.images.length > 0 
-    ? product.images.map((img: string) => getServerUrl(img))
-    : [];
+  // Resolve image paths against the backend origin, dropping repeats: a
+  // filename collision in the old upload handler left some products listing the
+  // same file twice, which rendered as duplicate thumbnails in the gallery.
+  const imageUrls: string[] = Array.from(
+    new Set<string>(
+      (product.images ?? [])
+        .filter(Boolean)
+        .map((img: string) => getServerUrl(img))
+    )
+  );
 
   return (
     <div className="bg-zinc-50 min-h-screen pb-24">

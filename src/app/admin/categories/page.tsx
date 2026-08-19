@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { fetchCategories, deleteCategory, deleteCategoriesBulk, uploadImage } from "@/lib/api";
+import { revalidateCategories } from "@/lib/revalidate";
 import { cn, getServerUrl } from "@/lib/utils";
 import {
   Search,
@@ -92,6 +93,8 @@ export default function AdminCategoriesPage() {
     try {
       const token = localStorage.getItem("rfid_token") || "";
       await deleteCategory(id, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateCategories();
       setSuccess("Category deleted successfully.");
       setSelectedIds((prev) => prev.filter((i) => i !== id));
       loadCategories();
@@ -108,6 +111,8 @@ export default function AdminCategoriesPage() {
     try {
       const token = localStorage.getItem("rfid_token") || "";
       await deleteCategoriesBulk(selectedIds, token);
+      // Flush the storefront cache so the change is visible right away.
+      await revalidateCategories();
       setSuccess(`${selectedIds.length} category(ies) deleted.`);
       setSelectedIds([]);
       loadCategories();
