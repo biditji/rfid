@@ -1,17 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  Menu,
-  X,
-  Globe,
-  Search,
-  ShoppingCart,
-  User as UserIcon,
-  LogOut,
-} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X, Search, ShoppingCart, User as UserIcon, LogOut, ArrowRight } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,179 +11,234 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/components/shared/page-container";
 import { NAV_ITEMS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
+const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout, loading } = useAuth();
-  const { cartCount } = useCart();
+  const menuId = useId();
+
+  // Close the mobile menu whenever the route changes — adjusting state during
+  // render, which React recommends over an effect for this.
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (pathname !== menuPath) {
+    setMenuPath(pathname);
+    setMobileOpen(false);
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <img src="/logo.png" alt="Virtualsphere Technologies" className="h-10 object-contain" />
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
+      <PageContainer className="flex h-16 items-center gap-4 lg:gap-8">
+        <Link href="/" className="shrink-0" aria-label="Virtualsphere Technologies — home">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
+          <img src="/logo.png" alt="" width={1024} height={216} className="h-7 w-auto sm:h-8" />
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                pathname === item.href
-                  ? "bg-zinc-100 text-zinc-900"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Desktop Actions */}
-        <div className="hidden items-center gap-2 md:flex">
-          <button
-            type="button"
-            className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
-            aria-label="Search"
-          >
-            <Search className="h-5 w-5" />
-          </button>
-          <Link
-            href="/cart"
-            className="relative rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
-            aria-label="Cart"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] font-medium text-white">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-          
-          {!loading && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<div />}
-                className="ml-2 flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 outline-none"
-              >
-                <UserIcon className="h-4 w-4" />
-                <span className="max-w-[100px] truncate">{user.name}</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-white">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{user.name}</p>
-                    <p className="truncate text-xs text-zinc-500">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <Link href="/profile" className="w-full">
-                  <DropdownMenuItem className="cursor-pointer">
-                    My Profile
-                  </DropdownMenuItem>
-                </Link>
-                {user.role === 'admin' && (
-                  <>
-                    <Link href="/admin" className="w-full">
-                      <DropdownMenuItem className="cursor-pointer">
-                        Admin Dashboard
-                      </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-                <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : !loading ? (
-            <div className="ml-2 flex items-center gap-4">
-              <Link href="/login" className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900">
-                Sign in
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
-              >
-                Create Account
-              </Link>
-            </div>
-          ) : (
-            <div className="ml-2 h-9 w-24 animate-pulse rounded-lg bg-zinc-100" />
-          )}
-        </div>
-
-        {/* Mobile Menu Toggle */}
-        <button
-          type="button"
-          className="rounded-md p-2 text-zinc-500 md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </button>
-      </div>
-
-      {/* Mobile Menu — a CSS grid-rows transition rather than framer-motion's
-          AnimatePresence, so the whole animation library isn't shipped to every
-          page for one collapsing panel. */}
-      <div
-        className={cn(
-          "grid overflow-hidden border-t border-zinc-100 transition-[grid-template-rows,opacity] duration-200 ease-out md:hidden",
-          mobileOpen
-            ? "grid-rows-[1fr] opacity-100"
-            : "grid-rows-[0fr] border-transparent opacity-0"
-        )}
-      >
-        <div className="min-h-0 overflow-hidden">
-          <nav className="space-y-1 px-4 py-3">
-            {NAV_ITEMS.map((item) => (
+        <nav aria-label="Main" className="hidden h-full items-stretch md:flex">
+          {NAV_ITEMS.map((item) => {
+            const active = isActive(pathname, item.href);
+            return (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setMobileOpen(false)}
-                tabIndex={mobileOpen ? 0 : -1}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "block rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-zinc-100 text-zinc-900"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                  // The active item carries the brand underline, echoing the logo.
+                  "relative flex items-center px-3 text-small font-medium transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand after:opacity-0 after:transition-opacity",
+                  active ? "text-foreground after:opacity-100" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {item.label}
               </Link>
-            ))}
-            <div className="border-t border-zinc-100 pt-3">
-              <Link
-                href="/contact"
-                onClick={() => setMobileOpen(false)}
-                tabIndex={mobileOpen ? 0 : -1}
-                className="block rounded-lg bg-slate-900 px-3 py-2.5 text-center text-sm font-medium text-white"
-              >
-                Get a Quote
-              </Link>
-            </div>
-          </nav>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <SearchForm className="hidden w-60 xl:block" />
+          <ButtonLink
+            href="/products"
+            variant="ghost"
+            size="icon"
+            aria-label="Search products"
+            className="hidden md:inline-flex xl:hidden"
+          >
+            <Search />
+          </ButtonLink>
+          <AccountControl />
+          <CartLink />
+          <ButtonLink href="/contact" size="md" className="ml-2 hidden lg:inline-flex">
+            Request a quote
+          </ButtonLink>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen((open) => !open)}
+            aria-expanded={mobileOpen}
+            aria-controls={menuId}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          >
+            {mobileOpen ? <X /> : <Menu />}
+          </Button>
+        </div>
+      </PageContainer>
+
+      {/* Mobile menu — a CSS grid-rows transition; `inert` keeps the closed
+          panel out of the tab order and the accessibility tree. */}
+      <div
+        id={menuId}
+        inert={!mobileOpen}
+        className={cn(
+          "grid border-t transition-[grid-template-rows,border-color] duration-300 ease-standard md:hidden motion-reduce:transition-none",
+          mobileOpen ? "grid-rows-[1fr] border-border" : "grid-rows-[0fr] border-transparent"
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <PageContainer className="space-y-6 py-5">
+            <SearchForm onSubmitted={() => setMobileOpen(false)} />
+            <nav aria-label="Main">
+              <ul className="divide-y divide-border border-y border-border">
+                {NAV_ITEMS.map((item) => {
+                  const active = isActive(pathname, item.href);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className="flex h-12 items-center justify-between text-body font-medium"
+                      >
+                        <span className={cn(active && "text-foreground", !active && "text-muted-foreground")}>
+                          {item.label}
+                        </span>
+                        {active && <span aria-hidden className="h-0.5 w-5 bg-brand" />}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+            <ButtonLink href="/contact" size="lg" className="w-full">
+              Request a quote
+            </ButtonLink>
+          </PageContainer>
         </div>
       </div>
     </header>
+  );
+}
+
+function SearchForm({ className, onSubmitted }: { className?: string; onSubmitted?: () => void }) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const inputId = useId();
+
+  return (
+    <form
+      role="search"
+      className={className}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const q = query.trim();
+        router.push(q ? `/products?search=${encodeURIComponent(q)}` : "/products");
+        onSubmitted?.();
+      }}
+    >
+      <label htmlFor={inputId} className="sr-only">
+        Search products
+      </label>
+      <Input
+        id={inputId}
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search products"
+        startIcon={<Search />}
+        autoComplete="off"
+      />
+    </form>
+  );
+}
+
+function CartLink() {
+  const { cartCount } = useCart();
+  return (
+    <ButtonLink
+      href="/cart"
+      variant="ghost"
+      size="icon"
+      className="relative"
+      aria-label={cartCount > 0 ? `Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}` : "Cart"}
+    >
+      <ShoppingCart />
+      {cartCount > 0 && (
+        <span
+          aria-hidden
+          className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-meta leading-none tracking-normal text-brand-foreground tabular-nums"
+        >
+          {cartCount > 99 ? "99+" : cartCount}
+        </span>
+      )}
+    </ButtonLink>
+  );
+}
+
+function AccountControl() {
+  const { user, logout, loading } = useAuth();
+
+  if (loading) return <Skeleton className="size-10" />;
+
+  if (!user) {
+    return (
+      <>
+        <ButtonLink href="/login" variant="ghost" size="icon" aria-label="Sign in" className="md:hidden">
+          <UserIcon />
+        </ButtonLink>
+        <ButtonLink href="/login" variant="ghost" size="md" className="hidden md:inline-flex">
+          Sign in
+        </ButtonLink>
+      </>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={`Account: ${user.name}`}
+        className="inline-flex h-10 items-center gap-2 rounded-control px-2.5 text-small font-medium text-foreground transition-colors hover:bg-muted aria-expanded:bg-muted"
+      >
+        <UserIcon className="size-5" />
+        <span className="hidden max-w-[7rem] truncate lg:inline">{user.name.split(" ")[0]}</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <div className="px-2.5 py-2">
+          <p className="truncate text-small font-medium">{user.name}</p>
+          <p className="truncate text-meta text-muted-foreground">{user.email}</p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/profile" />}>My profile</DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/orders" />}>Orders</DropdownMenuItem>
+        {user.role === "admin" && (
+          <DropdownMenuItem render={<Link href="/admin" />}>
+            Admin dashboard
+            <ArrowRight className="ml-auto" />
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onClick={logout}>
+          <LogOut />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

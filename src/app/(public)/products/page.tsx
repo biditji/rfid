@@ -3,6 +3,8 @@ import { ProductsContent } from "@/components/products/products-content";
 import { ProductsUnavailable } from "@/components/shared/products-unavailable";
 import { getCategories, getProductCards } from "@/lib/products";
 import { buildCategoryTree, categoryOptions, resolveCategory } from "@/lib/categories";
+import { isSortValue } from "@/lib/catalog";
+import { PageContainer } from "@/components/shared/page-container";
 
 export const metadata: Metadata = {
   title: "Products",
@@ -32,12 +34,10 @@ export default async function ProductsPage({ searchParams }: Props) {
     // The catalog is the whole point of this route, so the failure takes the
     // page — but as a recoverable error with a retry, never an endless spinner.
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Products</h1>
-        <div className="mt-8">
-          <ProductsUnavailable />
-        </div>
-      </div>
+      <PageContainer className="py-14">
+        <h1 className="text-h1">Products</h1>
+        <ProductsUnavailable className="mt-8" />
+      </PageContainer>
     );
   }
 
@@ -56,12 +56,16 @@ export default async function ProductsPage({ searchParams }: Props) {
     categories.push({ name: resolved.name, depth: 0, names: resolved.names });
   }
 
+  const sort = first(params.sort);
+
   return (
     <ProductsContent
       products={cards}
       categories={categories}
       initialSearch={first(params.search) ?? ""}
       initialCategory={resolved?.name ?? null}
+      initialSort={isSortValue(sort) ? sort : "newest"}
+      initialInStock={first(params.stock) === "1"}
     />
   );
 }

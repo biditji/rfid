@@ -2,7 +2,9 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, AlertCircle } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * Shown when the product API didn't answer.
@@ -18,7 +20,7 @@ import { RefreshCw, AlertCircle } from "lucide-react";
 export function ProductsUnavailable({
   title = "Unable to load products",
   description = "We couldn't reach the product catalog just now. Everything else on the site still works.",
-  className = "",
+  className,
 }: {
   title?: string;
   description?: string;
@@ -29,23 +31,27 @@ export function ProductsUnavailable({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-3xl border border-zinc-200 bg-zinc-50/60 px-6 py-16 text-center ${className}`}
+      className={cn(
+        "bg-grid flex flex-col items-start justify-center rounded-card border border-border bg-surface px-6 py-12 sm:px-10",
+        className
+      )}
       role="alert"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-        <AlertCircle className="h-6 w-6" />
-      </div>
-      <h3 className="mt-4 text-lg font-semibold text-zinc-900">{title}</h3>
-      <p className="mt-2 max-w-md text-sm text-zinc-500">{description}</p>
-      <button
-        type="button"
+      <p className="flex items-center gap-2 text-meta text-warning uppercase">
+        <span aria-hidden className="size-1.5 rounded-full bg-warning" />
+        Catalog offline
+      </p>
+      <h3 className="mt-3 text-h3">{title}</h3>
+      <p className="mt-2 max-w-md text-small text-muted-foreground">{description}</p>
+      <Button
+        className="mt-6"
         onClick={() => startTransition(() => router.refresh())}
-        disabled={isPending}
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-60"
+        loading={isPending}
+        loadingText="Retrying…"
+        startIcon={<RefreshCw />}
       >
-        <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
-        {isPending ? "Retrying…" : "Retry"}
-      </button>
+        Retry
+      </Button>
     </div>
   );
 }

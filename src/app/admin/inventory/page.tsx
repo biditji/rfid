@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchProducts } from "@/lib/api";
 import { Search, AlertTriangle, ArrowUpDown, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StockBadge } from "@/components/shared/status-badge";
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -82,16 +83,7 @@ export default function AdminInventoryPage() {
                   </td>
                   <td className="px-6 py-3 font-mono text-xs">{product.sku}</td>
                   <td className="px-6 py-3">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ${
-                      product.stock > 15 ? 'bg-emerald-50 text-emerald-700' :
-                      product.stock > 0 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${
-                        product.stock > 15 ? 'bg-emerald-500' :
-                        product.stock > 0 ? 'bg-amber-500' : 'bg-red-500'
-                      }`} />
-                      {product.stock > 15 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
-                    </span>
+                    <StockBadge stock={product.stock} />
                   </td>
                   <td className="px-6 py-3">
                     <div className="flex justify-end">

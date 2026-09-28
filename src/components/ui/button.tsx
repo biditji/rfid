@@ -1,58 +1,122 @@
+import type { ComponentProps, ReactNode } from "react"
+import Link from "next/link"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * One button language for the whole product.
+ *
+ *   primary      the single most important action in a view (near-black)
+ *   secondary    supporting actions on light surfaces
+ *   outline      the alternative to a primary sitting beside it
+ *   ghost        low-emphasis actions in toolbars and lists
+ *   destructive  irreversible actions
+ *   link         inline text actions
+ *
+ * Sizes are real control heights: sm 32 · md 40 · lg 48 · xl 56. Primary is
+ * the same everywhere — inside a `.surface-inverse` section the tokens flip it
+ * to light-on-dark, so there is never a second primary colour.
+ *
+ * Focus uses the global :focus-visible outline in globals.css.
+ */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-control border border-transparent font-medium whitespace-nowrap select-none transition-[background-color,border-color,color,transform] active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-45 aria-busy:cursor-progress aria-disabled:pointer-events-none aria-disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
-        outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
-        ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
-        destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklab,var(--secondary),var(--foreground)_7%)]",
+        outline:
+          "border-border-strong bg-transparent text-foreground hover:border-foreground aria-expanded:border-foreground",
+        ghost: "text-foreground hover:bg-muted aria-expanded:bg-muted",
+        destructive: "bg-danger text-danger-foreground hover:bg-danger/90",
+        link: "h-auto! border-0 px-0! text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground",
       },
       size: {
-        default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
-        "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+        sm: "h-8 gap-1.5 px-3 text-small [&_svg:not([class*='size-'])]:size-3.5",
+        md: "h-10 px-4 text-small [&_svg:not([class*='size-'])]:size-4",
+        lg: "h-12 px-5 text-body [&_svg:not([class*='size-'])]:size-4",
+        xl: "h-14 px-7 text-body [&_svg:not([class*='size-'])]:size-5",
+        "icon-sm": "size-8 [&_svg:not([class*='size-'])]:size-4",
+        icon: "size-10 [&_svg:not([class*='size-'])]:size-5",
+        "icon-lg": "size-12 [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: "primary",
+      size: "md",
     },
   }
 )
 
+type IconProps = {
+  /** Icon before the label. Replaced by a spinner while `loading`. */
+  startIcon?: ReactNode
+  /** Icon after the label — typically an arrow on navigational CTAs. */
+  endIcon?: ReactNode
+}
+
+type ButtonProps = ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> &
+  IconProps & {
+    /** Shows a spinner, blocks clicks and sets aria-busy; focus stays put. */
+    loading?: boolean
+    /** Label to show while loading, e.g. "Adding…". Defaults to `children`. */
+    loadingText?: ReactNode
+  }
+
 function Button({
   className,
-  variant = "default",
-  size = "default",
+  variant,
+  size,
+  loading = false,
+  loadingText,
+  startIcon,
+  endIcon,
+  disabled,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || loading}
+      // Keep keyboard focus on the button while it's busy, rather than
+      // dropping it to <body> the moment it becomes disabled.
+      focusableWhenDisabled={loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading ? <Loader2 aria-hidden className="animate-spin" /> : startIcon}
+      {loading && loadingText ? loadingText : children}
+      {!loading && endIcon}
+    </ButtonPrimitive>
   )
 }
 
-export { Button, buttonVariants }
+type ButtonLinkProps = ComponentProps<typeof Link> &
+  VariantProps<typeof buttonVariants> &
+  IconProps
+
+/**
+ * A navigation link that looks like a Button. Use it (not <Link><Button/>)
+ * whenever a CTA goes somewhere, so there's one focusable element with link
+ * semantics.
+ */
+function ButtonLink({ className, variant, size, startIcon, endIcon, children, ...props }: ButtonLinkProps) {
+  return (
+    <Link data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props}>
+      {startIcon}
+      {children}
+      {endIcon}
+    </Link>
+  )
+}
+
+export { Button, ButtonLink, buttonVariants }
+export type { ButtonProps }

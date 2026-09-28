@@ -1,80 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-import { Package } from "lucide-react";
+import { ProductMedia } from "@/components/shared/product-image";
 import { cn } from "@/lib/utils";
 
-interface ImageGalleryProps {
-  /** Absolute URLs, already resolved against the backend origin. */
-  images: string[];
-  productName: string;
-}
-
-export function ImageGallery({ images, productName }: ImageGalleryProps) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  if (!images || images.length === 0) {
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="w-full max-w-2xl sm:block lg:max-w-none">
-          <div className="aspect-square w-full overflow-hidden rounded-2xl bg-white border border-zinc-200 shadow-sm relative">
-            <div className="absolute inset-0 flex h-full items-center justify-center bg-zinc-100 text-zinc-400">
-              <Package className="h-24 w-24 opacity-20" />
-              <span className="sr-only">No image available</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+/**
+ * Product photos on the shared plate: one large view and, when there's more
+ * than one photo, a row of thumbnails. Photos are fitted, never cropped.
+ */
+export function ImageGallery({ images, productName }: { images: string[]; productName: string }) {
+  const [selected, setSelected] = useState(0);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Main Image — the LCP element on a product page, so it loads eagerly.
-          Originals are ~500 KB PNGs; <Image> serves a right-sized WebP instead. */}
-      <div className="w-full max-w-2xl sm:block lg:max-w-none">
-        <div className="aspect-square w-full overflow-hidden rounded-2xl bg-white border border-zinc-200 shadow-sm relative">
-          <Image
-            src={images[selectedIndex]}
-            alt={`${productName} image ${selectedIndex + 1}`}
-            fill
-            sizes="(max-width: 1024px) 100vw, 600px"
-            priority
-            className="object-cover object-center"
-          />
-        </div>
-      </div>
+    <div className="space-y-3">
+      <ProductMedia
+        src={images[selected]}
+        alt={images.length > 1 ? `${productName}, photo ${selected + 1} of ${images.length}` : productName}
+        placeholder={productName}
+        sizes="(max-width: 1024px) 100vw, 720px"
+        priority
+        className="aspect-square rounded-card border border-border sm:aspect-[4/3] lg:aspect-square"
+        imageClassName="p-[9%]"
+      />
 
-      {/* Thumbnails — small renditions, lazily loaded. */}
       {images.length > 1 && (
-        <div className="mx-auto w-full max-w-2xl sm:block lg:max-w-none">
-          <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-            {images.map((image, idx) => (
+        <ul className="grid grid-cols-4 gap-3 sm:grid-cols-6" aria-label="Product photos">
+          {images.map((image, i) => (
+            <li key={image}>
               <button
-                key={image + idx}
-                onClick={() => setSelectedIndex(idx)}
+                type="button"
+                onClick={() => setSelected(i)}
+                aria-label={`Show photo ${i + 1} of ${images.length}`}
+                aria-current={i === selected ? "true" : undefined}
                 className={cn(
-                  "relative flex aspect-square cursor-pointer items-center justify-center rounded-lg bg-white overflow-hidden transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-                  selectedIndex === idx
-                    ? "ring-2 ring-blue-500 ring-offset-2 border-transparent"
-                    : "border border-zinc-200 hover:border-zinc-300 opacity-70 hover:opacity-100"
+                  "block w-full overflow-hidden rounded-control border transition-colors",
+                  i === selected ? "border-foreground" : "border-border hover:border-border-strong"
                 )}
               >
-                <span className="sr-only">
-                  {productName} image {idx + 1}
-                </span>
-                <Image
+                {/* The first thumbnail shares its URL with the eager main photo; loading it eagerly too keeps
+                    Next from flagging the LCP image as lazy. */}
+                <ProductMedia
                   src={image}
-                  alt={`${productName} thumbnail ${idx + 1}`}
-                  fill
+                  alt=""
                   sizes="120px"
-                  className="object-cover object-center"
+                  priority={i === 0}
+                  className="aspect-square"
+                  imageClassName="p-[12%]"
                 />
               </button>
-            ))}
-          </div>
-        </div>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

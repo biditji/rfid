@@ -7,19 +7,19 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="bg-white py-16 sm:py-24 border-t border-zinc-100">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+    <div className="pt-10 pb-20 lg:pt-14">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+        <h1 className="text-h1">
           Terms & Conditions
         </h1>
-        <div className="mt-8 space-y-6 text-base leading-7 text-zinc-600">
+        <div className="mt-10 space-y-6 text-body text-pretty text-muted-foreground">
           <p>
             For the purpose of these Terms and Conditions, The term &quot;we&quot;, &quot;us&quot;, &quot;our&quot; used anywhere on this page shall mean <strong>VIRTUALSPHERE TECHNOLOGIES PRIVATE LIMITED</strong>, whose registered/operational office is C/O PRAKASH KUMAR SINHA, PO.Lalbagh, NEAR NAKA NO 6, OPP. SIDE OF OUTDOOR, A one imagine center, Raham Ganj, Darbhanga Darbhanga BIHAR 846004. &quot;you&quot;, &quot;your&quot;, &quot;user&quot;, &quot;visitor&quot; shall mean any natural or legal person who is visiting our website and/or agreed to purchase from us.
           </p>
           <p>
             Your use of the website and/or purchase from us are governed by following Terms and Conditions:
           </p>
-          <ul className="list-disc space-y-4 pl-6 text-zinc-600">
+          <ul className="list-disc space-y-4 pl-6 marker:text-border-strong">
             <li>The content of the pages of this website is subject to change without notice.</li>
             <li>Neither we nor any third parties provide any warranty or guarantee as to the accuracy, timeliness, performance, completeness or suitability of the information and materials found or offered on this website for any particular purpose. You acknowledge that such information and materials may contain inaccuracies or errors and we expressly exclude liability for any such inaccuracies or errors to the fullest extent permitted by law.</li>
             <li>Your use of any information or materials on our website and/or product pages is entirely at your own risk, for which we shall not be liable. It shall be your own responsibility to ensure that any products, services or information available through our website and/or product pages meet your specific requirements.</li>

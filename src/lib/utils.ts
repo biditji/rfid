@@ -1,15 +1,38 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
 import { BACKEND_ORIGIN } from "./config"
+
+/**
+ * tailwind-merge only knows Tailwind's default scale. Without these, it reads
+ * `text-h2` as a colour and silently drops it when a `text-foreground` follows,
+ * and never dedupes `rounded-card` against `rounded-full`. Keep in step with
+ * the @theme block in globals.css.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: ["display", "h1", "h2", "h3", "lead", "body", "small", "meta", "tech"],
+      radius: ["control", "card"],
+      shadow: ["card", "raised", "overlay"],
+      ease: ["standard", "emphasized"],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Rupees. Whole-rupee prices drop the ".00" — hardware is priced in rupees,
+ * and the paise only add noise to a price list.
+ */
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -58,15 +81,6 @@ export function slugify(text: string): string {
 export function truncate(text: string, length: number): string {
   if (text.length <= length) return text;
   return text.slice(0, length).trimEnd() + "…";
-}
-
-export function getStockStatus(stock: number): {
-  label: string;
-  color: string;
-} {
-  if (stock === 0) return { label: "Out of Stock", color: "red" };
-  if (stock <= 10) return { label: "Low Stock", color: "amber" };
-  return { label: "In Stock", color: "emerald" };
 }
 
 /**

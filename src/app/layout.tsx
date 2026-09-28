@@ -6,16 +6,26 @@ import { CartProvider } from "@/contexts/CartContext";
 import { SITE_URL } from "@/lib/config";
 
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+  // The optical-size axis gives large headings Inter's tighter display cut.
+  axes: ["opsz"],
+});
+
+// Technical values only: SKUs, specifications, frequency bands.
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
+/**
+ * Runs before first paint: flags that scripts are running, so intro-animated
+ * elements can start hidden without ever hiding content from visitors whose
+ * scripts don't run (see the [data-intro] rules in globals.css).
+ */
+const JS_FLAG = "document.documentElement.classList.add('js')";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -71,7 +81,13 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      // The inline script below adds `js` to this element's classes before
+      // React hydrates.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: JS_FLAG }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <CartProvider>

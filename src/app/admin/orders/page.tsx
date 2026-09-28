@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { fetchAllOrders, updateOrderStatus } from "@/lib/api";
 import { formatCurrency, cn, getServerUrl } from "@/lib/utils";
+import { ORDER_STATUSES, ORDER_STATUS_META, orderStatusMeta } from "@/lib/status";
+import { badgeVariants } from "@/components/ui/badge";
 import { Package, Search, ChevronRight, X } from "lucide-react";
 import {
   Dialog,
@@ -119,18 +121,17 @@ export default function AdminOrdersPage() {
                       <select
                         value={order.status}
                         onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                        aria-label={`Status of order ${order._id.slice(-8).toUpperCase()}`}
                         className={cn(
-                          "rounded-full px-2 py-1 text-xs font-medium outline-none cursor-pointer border-0",
-                          order.status === 'Processing' ? 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20' :
-                          order.status === 'Shipped' ? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20' :
-                          order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' : 
-                          'bg-zinc-50 text-zinc-700 ring-1 ring-inset ring-zinc-600/20'
+                          badgeVariants({ tone: orderStatusMeta(order.status).tone, size: "md" }),
+                          "cursor-pointer"
                         )}
                       >
-                        <option value="Processing">Processing</option>
-                        <option value="Shipped">Shipped</option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
+                        {ORDER_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {ORDER_STATUS_META[status].label}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td className="px-6 py-4 font-medium text-zinc-900">

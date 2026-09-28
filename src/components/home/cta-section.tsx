@@ -1,100 +1,64 @@
-"use client";
-
-import { useRef } from "react";
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ButtonLink } from "@/components/ui/button";
+import { Eyebrow } from "@/components/shared/section-header";
+import { PageContainer } from "@/components/shared/page-container";
+import { SITE_CONFIG } from "@/lib/constants";
 
-gsap.registerPlugin(ScrollTrigger);
-
-export function CTASection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const bgRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    // Background scaling reveal
-    gsap.fromTo(
-      bgRef.current,
-      {
-        clipPath: "inset(25% 15% 25% 15% round 3rem)",
-      },
-      {
-        clipPath: "inset(0% 0% 0% 0% round 0rem)",
-        ease: "power2.inOut",
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 95%",
-          end: "center center",
-          scrub: 1,
-        },
-      }
-    );
-
-    // Text stagger reveal
-    const textElements = textRef.current?.children;
-    if (textElements) {
-      gsap.fromTo(
-        textElements,
-        {
-          y: 50,
-          opacity: 0,
-        },
-        {
-          y: 0,
-          opacity: 1,
-          stagger: 0.15,
-          duration: 0.6,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 85%",
-            once: true,
-          },
-        }
-      );
-    }
-  }, { scope: containerRef });
-
+/**
+ * Closing call to action on the inverse surface: the ask on the left, the
+ * ways to reach a person on the right. Static — the page's last word
+ * shouldn't be an animation.
+ */
+export function CtaSection() {
   return (
-    <section ref={containerRef} className="relative py-24 sm:py-32 overflow-hidden bg-white">
-      <div 
-        ref={bgRef} 
-        className="absolute inset-0 bg-slate-900 z-0"
-      >
-        {/* Decorative gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-violet-900/20 opacity-50" />
-      </div>
-
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div ref={textRef} className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+    <section aria-labelledby="cta-title" className="surface-inverse">
+      <PageContainer className="grid grid-cols-1 gap-12 py-20 lg:grid-cols-12 lg:gap-16 lg:py-28">
+        <div className="lg:col-span-7">
+          <Eyebrow>Start a project</Eyebrow>
+          <h2 id="cta-title" className="mt-5 text-h1 text-balance">
             Ready to modernize your inventory operations?
           </h2>
-          <p className="mt-6 text-lg leading-8 text-zinc-300">
-            Talk to our team about your requirements. We&apos;ll help you scope
-            the right hardware, plan your deployment, and get you up and
-            running.
+          <p className="mt-6 max-w-xl text-lead text-pretty text-muted-foreground">
+            Talk to our team about your requirements. We&apos;ll help you scope the right hardware, plan your
+            deployment, and get you up and running.
           </p>
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-semibold text-slate-900 shadow-lg shadow-white/10 transition-all hover:bg-zinc-100 hover:-translate-y-1 hover:shadow-xl hover:shadow-white/20"
-            >
-              Talk to Sales
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/products"
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-slate-900/50 backdrop-blur-md px-8 py-4 text-sm font-medium text-white transition-all hover:border-zinc-500 hover:bg-zinc-800"
-            >
-              Browse Products
-            </Link>
+          <div className="mt-10 flex flex-wrap gap-3">
+            <ButtonLink href="/contact" size="lg" endIcon={<ArrowRight />}>
+              Request a quote
+            </ButtonLink>
+            <ButtonLink href="/products" size="lg" variant="outline">
+              Browse the catalog
+            </ButtonLink>
           </div>
         </div>
-      </div>
+
+        <dl className="self-end border-t border-border lg:col-span-5 lg:col-start-8">
+          <ContactRow label="Call">
+            <a href={`tel:${SITE_CONFIG.phone}`} className="text-small tabular-nums hover:underline">
+              {SITE_CONFIG.phone}
+            </a>
+          </ContactRow>
+          <ContactRow label="Email">
+            <a href={`mailto:${SITE_CONFIG.email}`} className="text-small break-all hover:underline">
+              {SITE_CONFIG.email}
+            </a>
+          </ContactRow>
+          <ContactRow label="Visit">
+            <span className="text-small">
+              {SITE_CONFIG.address.street}, {SITE_CONFIG.address.city} {SITE_CONFIG.address.zip}
+            </span>
+          </ContactRow>
+        </dl>
+      </PageContainer>
     </section>
+  );
+}
+
+function ContactRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[5rem_1fr] items-baseline gap-4 border-b border-border py-4">
+      <dt className="text-meta text-muted-foreground uppercase">{label}</dt>
+      <dd className="min-w-0">{children}</dd>
+    </div>
   );
 }

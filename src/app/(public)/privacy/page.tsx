@@ -7,12 +7,12 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="bg-white py-16 sm:py-24 border-t border-zinc-100">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+    <div className="pt-10 pb-20 lg:pt-14">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+        <h1 className="text-h1">
           Privacy Policy
         </h1>
-        <div className="mt-8 space-y-6 text-base leading-7 text-zinc-600">
+        <div className="mt-10 space-y-6 text-body text-pretty text-muted-foreground">
           <p>
             This privacy policy sets out how VIRTUALSPHERE TECHNOLOGIES PRIVATE LIMITED uses and protects any information that you give VIRTUALSPHERE TECHNOLOGIES PRIVATE LIMITED when you visit their website and/or agree to purchase from them.
           </p>
@@ -23,19 +23,19 @@ export default function PrivacyPage() {
             VIRTUALSPHERE TECHNOLOGIES PRIVATE LIMITED may change this policy from time to time by updating this page. You should check this page from time to time to ensure that you adhere to these changes.
           </p>
           
-          <h2 className="text-xl font-semibold text-zinc-900 mt-8 mb-4">We may collect the following information:</h2>
-          <ul className="list-disc space-y-2 pl-6 text-zinc-600">
+          <h2 className="mt-12 mb-4 text-h3 text-foreground">We may collect the following information:</h2>
+          <ul className="list-disc space-y-2 pl-6 marker:text-border-strong">
             <li>Name</li>
             <li>Contact information including email address</li>
             <li>Demographic information such as postcode, preferences and interests, if required</li>
             <li>Other information relevant to customer surveys and/or offers</li>
           </ul>
 
-          <h2 className="text-xl font-semibold text-zinc-900 mt-8 mb-4">What we do with the information we gather</h2>
+          <h2 className="mt-12 mb-4 text-h3 text-foreground">What we do with the information we gather</h2>
           <p>
             We require this information to understand your needs and provide you with a better service, and in particular for the following reasons:
           </p>
-          <ul className="list-disc space-y-2 pl-6 text-zinc-600">
+          <ul className="list-disc space-y-2 pl-6 marker:text-border-strong">
             <li>Internal record keeping.</li>
             <li>We may use the information to improve our products and services.</li>
             <li>We may periodically send promotional emails about new products, special offers or other information which we think you may find interesting using the email address which you have provided.</li>
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
             <li>We are committed to ensuring that your information is secure. In order to prevent unauthorised access or disclosure we have put in suitable measures.</li>
           </ul>
 
-          <h2 className="text-xl font-semibold text-zinc-900 mt-8 mb-4">How we use cookies</h2>
+          <h2 className="mt-12 mb-4 text-h3 text-foreground">How we use cookies</h2>
           <p>
             A cookie is a small file which asks permission to be placed on your computer&apos;s hard drive. Once you agree, the file is added and the cookie helps analyze web traffic or lets you know when you visit a particular site. Cookies allow web applications to respond to you as an individual. The web application can tailor its operations to your needs, likes and dislikes by gathering and remembering information about your preferences.
           </p>
@@ -57,11 +57,11 @@ export default function PrivacyPage() {
             You can choose to accept or decline cookies. Most web browsers automatically accept cookies, but you can usually modify your browser setting to decline cookies if you prefer. This may prevent you from taking full advantage of the website.
           </p>
 
-          <h2 className="text-xl font-semibold text-zinc-900 mt-8 mb-4">Controlling your personal information</h2>
+          <h2 className="mt-12 mb-4 text-h3 text-foreground">Controlling your personal information</h2>
           <p>
             You may choose to restrict the collection or use of your personal information in the following ways:
           </p>
-          <ul className="list-disc space-y-4 pl-6 text-zinc-600">
+          <ul className="list-disc space-y-4 pl-6 marker:text-border-strong">
             <li>whenever you are asked to fill in a form on the website, look for the box that you can click to indicate that you do not want the information to be used by anybody for direct marketing purposes</li>
             <li>if you have previously agreed to us using your personal information for direct marketing purposes, you may change your mind at any time by writing to or emailing us at info@virtualspheretechnologies.in</li>
           </ul>

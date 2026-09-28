@@ -1,20 +1,17 @@
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import type { Metadata } from "next";
-import { HeroSection } from "@/components/home/hero-section";
-import { HeroShowcase } from "@/components/home/hero-showcase";
-import { HeroShowcaseSkeleton } from "@/components/home/hero-showcase-skeleton";
-import { TrustSection } from "@/components/home/trust-section";
-import { CategoriesSection } from "@/components/home/categories-section";
-import {
-  FeaturedProducts,
-  FeaturedProductsSkeleton,
-} from "@/components/home/featured-products";
+import { Hero } from "@/components/home/hero";
+import { HeroVisual, HeroVisualSkeleton } from "@/components/home/hero-visual";
+import { ShowcaseSection, ShowcaseSkeleton } from "@/components/home/showcase-section";
+import { ProductDiscovery, ProductDiscoverySkeleton } from "@/components/home/product-discovery";
+import { RfidSystem } from "@/components/home/rfid-system";
+import { ProofSection } from "@/components/home/proof-section";
 import { WhySection } from "@/components/home/why-section";
 import { IndustriesSection } from "@/components/home/industries-section";
-import { CTASection } from "@/components/home/cta-section";
+import { CtaSection } from "@/components/home/cta-section";
 import { ProductsUnavailable } from "@/components/shared/products-unavailable";
-import { CategoryPills, CategoryPillsSkeleton } from "@/components/home/category-pills";
-import { getProductCards, getStorefrontCategories } from "@/lib/products";
+import { curateHome, getProductCards, getStorefrontCategories } from "@/lib/products";
+import { HOME_FEATURED } from "@/lib/constants";
 
 export const revalidate = 300;
 
@@ -24,91 +21,68 @@ export const metadata: Metadata = {
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
 };
 
-const SPOTLIGHT_COUNT = 3;
-const QUICK_BROWSE_COUNT = 4;
-const HERO_COUNT = SPOTLIGHT_COUNT + QUICK_BROWSE_COUNT;
-const EXPLORE_COUNT = 6;
-/** Exactly what this page renders — no reason to pull the whole catalog. */
-const HOME_PRODUCT_COUNT = HERO_COUNT + EXPLORE_COUNT;
-
 /**
- * Both product sections read the same list. `getProductCards` is memoized per
- * request, so the two await calls below share a single backend round trip.
+ * One catalog read feeds every product slot on the page. `getProductCards()`
+ * is memoized per request and shares its cached response with /products, so
+ * the sections below cost a single backend round trip between them.
  */
-async function HeroProducts() {
-  const { cards, ok } = await getProductCards(HOME_PRODUCT_COUNT);
+const getHome = cache(async () => {
+  const { cards, ok } = await getProductCards();
+  return { ok, total: cards.length, ...curateHome(cards, HOME_FEATURED) };
+});
 
+async function HeroProduct() {
+  const { ok, hero } = await getHome();
   if (!ok) {
     return (
-      <ProductsUnavailable
-        description="We couldn't reach the product catalog just now. Browse the categories above, or try again."
-        className="my-4"
-      />
+      <ProductsUnavailable description="We couldn't reach the product catalog just now. The rest of the site is unaffected." />
     );
   }
-
-  return (
-    <HeroShowcase
-      spotlight={cards.slice(0, SPOTLIGHT_COUNT)}
-      quickBrowse={cards.slice(SPOTLIGHT_COUNT, HERO_COUNT)}
-    />
-  );
+  return hero ? <HeroVisual product={hero} /> : null;
 }
 
-async function ExploreProducts() {
-  const { cards, ok } = await getProductCards(HOME_PRODUCT_COUNT);
-
-  const explore = cards.slice(HERO_COUNT, HERO_COUNT + EXPLORE_COUNT);
-
-  return (
-    <FeaturedProducts
-      // Fall back to the head of the catalog when there aren't enough products
-      // to fill a distinct second rail.
-      products={explore.length >= 3 ? explore : cards.slice(0, EXPLORE_COUNT)}
-      ok={ok}
-    />
-  );
+async function Showcase() {
+  const { ok, showcase } = await getHome();
+  // When the catalog is down the hero already says so; don't repeat it.
+  if (!ok || showcase.length === 0) return null;
+  return <ShowcaseSection products={showcase} />;
 }
 
-/** Hero pills and category cards share one (memoized) categories read. */
-async function HeroCategoryPills() {
-  return <CategoryPills categories={await getStorefrontCategories()} />;
+async function Discovery() {
+  const [{ ok, rail, total }, categories] = await Promise.all([getHome(), getStorefrontCategories()]);
+  return <ProductDiscovery categories={categories} products={ok ? rail : []} totalProducts={ok ? total : null} />;
 }
 
-async function HomeCategories() {
-  return <CategoriesSection categories={await getStorefrontCategories()} />;
-}
-
+/**
+ * The home page as a narrative: what we sell (hero) → the flagship hardware
+ * (stack) → where to start browsing (discovery) → how RFID works (system) →
+ * who uses it (proof) → why us → where it's deployed (industries) → the ask.
+ *
+ * Nothing here awaits at the top level. Static sections stream immediately;
+ * only the catalog-fed ones wait, each behind its own Suspense boundary, so a
+ * slow backend never holds up the page.
+ */
 export default function HomePage() {
-  // Nothing is awaited here. The hero shell and every static section stream
-  // immediately; only the sections fed by the backend (products, categories)
-  // wait on it, each behind its own Suspense boundary. A slow or failing API
-  // can no longer hold up the page.
   return (
     <>
-      <HeroSection
-        pills={
-          <Suspense fallback={<CategoryPillsSkeleton />}>
-            <HeroCategoryPills />
+      <Hero
+        visual={
+          <Suspense fallback={<HeroVisualSkeleton />}>
+            <HeroProduct />
           </Suspense>
         }
-      >
-        <Suspense fallback={<HeroShowcaseSkeleton />}>
-          <HeroProducts />
-        </Suspense>
-      </HeroSection>
-
-      <Suspense fallback={<FeaturedProductsSkeleton />}>
-        <ExploreProducts />
+      />
+      <Suspense fallback={<ShowcaseSkeleton />}>
+        <Showcase />
       </Suspense>
-
-      <TrustSection />
-      <Suspense fallback={null}>
-        <HomeCategories />
+      <Suspense fallback={<ProductDiscoverySkeleton />}>
+        <Discovery />
       </Suspense>
+      <RfidSystem />
+      <ProofSection />
       <WhySection />
       <IndustriesSection />
-      <CTASection />
+      <CtaSection />
     </>
   );
 }

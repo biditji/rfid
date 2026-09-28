@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getProductIndex } from "@/lib/products";
+import { ChevronRight, ShieldCheck, Phone } from "lucide-react";
+import { getProductBySlug, getProductIndex, toProductSummary } from "@/lib/products";
 import { sanitizeProductHtml } from "@/lib/sanitize";
-import { formatCurrency, getStockStatus, cn, getServerUrl, stripHtml, truncate } from "@/lib/utils";
-import { ShieldCheck, Truck } from "lucide-react";
-import { AddToCartButton } from "@/components/products/add-to-cart-button";
+import { formatCurrency, getServerUrl, slugify, stripHtml, truncate } from "@/lib/utils";
+import { GST_NOTE, SITE_CONFIG } from "@/lib/constants";
+import type { Product } from "@/types";
 import { ImageGallery } from "@/components/products/image-gallery";
+import { PurchaseForm } from "@/components/products/purchase-form";
+import { StockBadge } from "@/components/shared/status-badge";
+import { PageContainer } from "@/components/shared/page-container";
 
-// Props definition for dynamic route
 type Props = {
   params: Promise<{ slug: string }>;
 };
@@ -25,7 +28,6 @@ export async function generateStaticParams() {
   return products.map(({ slug }) => ({ slug }));
 }
 
-// Generate SEO Metadata dynamically based on the product
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
@@ -34,12 +36,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Product Not Found | Virtualsphere" };
   }
 
-  // Fallback to name/description if custom SEO fields are empty. The
+  // Fall back to name/description if custom SEO fields are empty. The
   // description is rich-text HTML, so strip it — otherwise search results show
   // raw "<p><strong>…" markup as the snippet.
   const title = product.metaTitle || `${product.name} | Virtualsphere`;
-  const description =
-    product.metaDescription || truncate(stripHtml(product.description ?? ""), 160);
+  const description = product.metaDescription || truncate(stripHtml(product.description ?? ""), 160);
 
   return {
     title,
@@ -52,7 +53,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// Main Page Component
+/**
+ * Product page. The purchase decision comes first: on desktop the gallery and
+ * the purchase panel sit side by side; on a phone the order is photo → name →
+ * price and GST → stock → quantity → Add to cart → Request a quote. The long
+ * description and the full specification table come after, never before.
+ */
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
@@ -61,209 +67,207 @@ export default async function ProductPage({ params }: Props) {
     notFound();
   }
 
-  const stockStatus = getStockStatus(product.stock);
+  const summary = toProductSummary(product);
   // Resolve image paths against the backend origin, dropping repeats: a
   // filename collision in the old upload handler left some products listing the
-  // same file twice, which rendered as duplicate thumbnails in the gallery.
-  const imageUrls: string[] = Array.from(
-    new Set<string>(
-      (product.images ?? [])
-        .filter(Boolean)
-        .map((img: string) => getServerUrl(img))
-    )
-  );
+  // same file twice, which rendered as duplicate thumbnails.
+  const images = Array.from(new Set((product.images ?? []).filter(Boolean).map((img) => getServerUrl(img))));
+  const onSale = product.compareAtPrice !== undefined && product.compareAtPrice > product.price;
+  const details = detailRows(product, summary.sku);
+  const description = sanitizeProductHtml(product.description);
 
   return (
-    <div className="bg-zinc-50 min-h-screen pb-24">
-      {/* Breadcrumbs / Top Bar */}
-      <div className="bg-white border-b border-zinc-200">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <nav className="flex text-sm font-medium text-zinc-500">
-            <Link href="/" className="hover:text-zinc-900 transition-colors">Home</Link>
-            <span className="mx-2">/</span>
-            <Link href="/products" className="hover:text-zinc-900 transition-colors">Products</Link>
-            <span className="mx-2">/</span>
-            {product.category && (
+    <>
+      <PageContainer as="nav" aria-label="Breadcrumb" className="pt-6">
+        <ol className="flex flex-wrap items-center gap-1.5 text-small text-muted-foreground">
+          <Crumb href="/">Home</Crumb>
+          <Crumb href="/products">Products</Crumb>
+          {product.category && (
+            <Crumb href={`/products?category=${slugify(product.category.name)}`}>{product.category.name}</Crumb>
+          )}
+          <li aria-current="page" className="truncate text-foreground">
+            {product.name}
+          </li>
+        </ol>
+      </PageContainer>
+
+      <PageContainer className="grid grid-cols-1 gap-10 pt-6 pb-16 lg:grid-cols-12 lg:gap-12 lg:pb-24">
+        <div className="lg:col-span-7">
+          <div className="lg:sticky lg:top-24">
+            <ImageGallery images={images} productName={product.name} />
+          </div>
+        </div>
+
+        {/* Purchase panel */}
+        <div className="lg:col-span-5">
+          <p className="flex flex-wrap items-center gap-2 text-meta text-muted-foreground uppercase">
+            {product.category?.name}
+            {summary.sku && (
               <>
-                <span className="text-zinc-500">{product.category.name || 'Category'}</span>
-                <span className="mx-2">/</span>
+                {product.category && <span aria-hidden className="h-3 w-px bg-border-strong" />}
+                <span className="font-mono tracking-normal">
+                  <span className="sr-only">SKU </span>
+                  {summary.sku}
+                </span>
               </>
             )}
-            <span className="text-zinc-900">{product.name}</span>
-          </nav>
-        </div>
-      </div>
+          </p>
+          <h1 className="mt-3 text-h1 text-balance">{product.name}</h1>
+          {summary.excerpt && (
+            <p className="mt-4 line-clamp-3 text-body text-pretty text-muted-foreground">{summary.excerpt}</p>
+          )}
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-16">
-        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-12 xl:gap-x-16">
-          
-          {/* Left Column - Image Gallery */}
-          <div className="lg:sticky lg:top-8">
-            <ImageGallery images={imageUrls} productName={product.name} />
-          </div>
-
-          {/* Right Column - Product Info */}
-          <div className="mt-10 px-4 sm:px-0 lg:mt-0">
-            <div className="mb-4 flex items-center justify-between">
-              {product.category && (
-                <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-100">
-                  {product.category.name}
+          <div className="mt-8 border-t border-border pt-6">
+            <p className="flex flex-wrap items-baseline gap-x-3">
+              <span className="text-h2 tabular-nums">{formatCurrency(product.price)}</span>
+              {onSale && (
+                <s className="text-body text-muted-foreground tabular-nums">
+                  <span className="sr-only">was </span>
+                  {formatCurrency(product.compareAtPrice!)}
+                </s>
+              )}
+            </p>
+            <p className="mt-1 text-small text-muted-foreground">
+              {GST_NOTE}
+              {summary.minimumQuantity > 1 && <> · per unit, minimum order {summary.minimumQuantity}</>}
+            </p>
+            <p className="mt-4 flex flex-wrap items-center gap-3 text-small text-muted-foreground">
+              <StockBadge stock={product.stock} size="md" />
+              {product.stock > 0 && (
+                <span className="tabular-nums">
+                  {product.stock} {product.stock === 1 ? "unit" : "units"} available
                 </span>
               )}
-              <span className="text-sm text-zinc-500">SKU: <span className="font-mono text-zinc-700">{product.sku}</span></span>
-            </div>
-
-            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl">{product.name}</h1>
-            
-            <div className="mt-3">
-              <h2 className="sr-only">Product information</h2>
-              <p className="text-3xl font-bold tracking-tight text-zinc-900">{formatCurrency(product.price)}</p>
-            </div>
-
-            <div className="mt-6">
-              <h3 className="sr-only">Description</h3>
-              <div 
-                className="prose prose-zinc max-w-none text-zinc-700 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-zinc-200 prose-th:bg-zinc-50 prose-th:p-3 prose-th:text-left prose-td:border prose-td:border-zinc-200 prose-td:p-3 prose-img:rounded-lg prose-img:border prose-img:border-zinc-200"
-                dangerouslySetInnerHTML={{ __html: sanitizeProductHtml(product.description) }}
-              />
-            </div>
-
-            <div className="mt-8 border-t border-zinc-200 pt-8">
-              <h3 className="text-lg font-medium text-zinc-900 mb-4">Product Specifications</h3>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 text-sm">
-                {product.model && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">Model</dt>
-                    <dd className="text-zinc-900 mt-1">{product.model}</dd>
-                  </div>
-                )}
-                {product.sku && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">SKU</dt>
-                    <dd className="text-zinc-900 mt-1">{product.sku}</dd>
-                  </div>
-                )}
-                {product.upc && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">UPC</dt>
-                    <dd className="text-zinc-900 mt-1">{product.upc}</dd>
-                  </div>
-                )}
-                {product.ean && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">EAN</dt>
-                    <dd className="text-zinc-900 mt-1">{product.ean}</dd>
-                  </div>
-                )}
-                {product.jan && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">JAN</dt>
-                    <dd className="text-zinc-900 mt-1">{product.jan}</dd>
-                  </div>
-                )}
-                {product.isbn && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">ISBN</dt>
-                    <dd className="text-zinc-900 mt-1">{product.isbn}</dd>
-                  </div>
-                )}
-                {product.mpn && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">MPN</dt>
-                    <dd className="text-zinc-900 mt-1">{product.mpn}</dd>
-                  </div>
-                )}
-                {(product.weight ?? 0) > 0 && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">Weight</dt>
-                    <dd className="text-zinc-900 mt-1">{product.weight} {product.weightClass}</dd>
-                  </div>
-                )}
-                {product.dimensions && (product.dimensions.length || product.dimensions.width || product.dimensions.height) && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">Dimensions (L x W x H)</dt>
-                    <dd className="text-zinc-900 mt-1">
-                      {product.dimensions.length || 0} x {product.dimensions.width || 0} x {product.dimensions.height || 0} {product.lengthClass}
-                    </dd>
-                  </div>
-                )}
-                {product.minimumQuantity > 1 && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2">
-                    <dt className="text-zinc-500 font-medium">Minimum Order Quantity</dt>
-                    <dd className="text-zinc-900 mt-1">{product.minimumQuantity}</dd>
-                  </div>
-                )}
-                {product.productTags && (
-                  <div className="flex flex-col border-b border-zinc-100 pb-2 sm:col-span-2">
-                    <dt className="text-zinc-500 font-medium">Tags</dt>
-                    <dd className="text-zinc-900 mt-1">{product.productTags}</dd>
-                  </div>
-                )}
-                {product.specifications && product.specifications.length > 0 && (
-                  <div className="sm:col-span-2 mt-6">
-                    <h4 className="text-sm font-semibold text-zinc-900 mb-3 uppercase tracking-wider">Technical Data</h4>
-                    <div className="overflow-hidden rounded-lg border border-zinc-200">
-                      <table className="w-full border-collapse text-sm">
-                        <tbody>
-                          {product.specifications.map((spec, idx) => (
-                            <tr key={idx} className="border-b border-zinc-200 last:border-0">
-                              <td className="py-3 px-4 font-medium text-zinc-700 bg-zinc-100/80 w-1/3 border-r border-zinc-200 align-top">
-                                {spec.name}
-                              </td>
-                              <td className="py-3 px-4 text-zinc-900 bg-white align-top">
-                                {spec.value}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </dl>
-            </div>
-
-            <div className="mt-8 border-t border-zinc-200 pt-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className={cn(
-                  "flex items-center gap-1.5 text-sm font-medium",
-                  stockStatus.color === "emerald" ? "text-emerald-700" : 
-                  stockStatus.color === "amber" ? "text-amber-700" : "text-red-700"
-                )}>
-                  <div className={cn(
-                    "h-2 w-2 rounded-full",
-                    stockStatus.color === "emerald" ? "bg-emerald-500" : 
-                    stockStatus.color === "amber" ? "bg-amber-500" : "bg-red-500"
-                  )} />
-                  {stockStatus.label}
-                  {product.stock > 0 && <span className="text-zinc-500 font-normal ml-1">({product.stock} available)</span>}
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <AddToCartButton productId={product._id} stock={product.stock} />
-              </div>
-            </div>
-
-            {/* Value Props */}
-            <div className="mt-10 grid grid-cols-2 gap-4 border-t border-zinc-200 pt-8">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div className="text-sm font-medium text-zinc-900">Secure Checkout</div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                  <Truck className="h-5 w-5" />
-                </div>
-                <div className="text-sm font-medium text-zinc-900">Fast Shipping</div>
-              </div>
-            </div>
-
+            </p>
           </div>
+
+          <div className="mt-6">
+            <PurchaseForm
+              productId={product._id}
+              slug={product.slug}
+              name={product.name}
+              sku={summary.sku}
+              stock={product.stock}
+              minimumQuantity={summary.minimumQuantity}
+            />
+          </div>
+
+          {summary.keySpecs.length > 0 && (
+            <dl className="mt-8 border-t border-border">
+              {summary.keySpecs.map((spec) => (
+                <div key={spec.label} className="flex items-baseline justify-between gap-6 border-b border-border py-3">
+                  <dt className="shrink-0 text-meta text-muted-foreground uppercase">{spec.label}</dt>
+                  <dd className="text-right font-mono text-tech">{spec.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <ul className="mt-8 space-y-3 text-small text-muted-foreground">
+            <li className="flex items-center gap-3">
+              <ShieldCheck aria-hidden className="size-4 shrink-0 text-foreground" />
+              Secure payment via Razorpay
+            </li>
+            <li className="flex items-center gap-3">
+              <Phone aria-hidden className="size-4 shrink-0 text-foreground" />
+              <span>
+                Questions about this product?{" "}
+                <a href={`tel:${SITE_CONFIG.phone}`} className="text-foreground tabular-nums hover:underline">
+                  {SITE_CONFIG.phone}
+                </a>
+              </span>
+            </li>
+          </ul>
         </div>
-      </div>
-    </div>
+      </PageContainer>
+
+      {(description || details.length > 0) && (
+        <section aria-label="Product details" className="border-t border-border bg-surface">
+          <PageContainer className="grid grid-cols-1 gap-14 py-16 lg:grid-cols-12 lg:gap-12 lg:py-24">
+            {description && (
+              <div className="lg:col-span-7">
+                <h2 className="text-h2">Overview</h2>
+                <div
+                  className="prose mt-6 max-w-none prose-headings:tracking-tight prose-img:rounded-card prose-img:border prose-img:border-border prose-table:text-small"
+                  dangerouslySetInnerHTML={{ __html: description }}
+                />
+              </div>
+            )}
+
+            {details.length > 0 && (
+              <div className={description ? "lg:col-span-5" : "lg:col-span-8"}>
+                <h2 className="text-h2">Specifications</h2>
+                {details.map((group) => (
+                  <div key={group.title} className="mt-8">
+                    <h3 className="text-meta text-muted-foreground uppercase">{group.title}</h3>
+                    <dl className="mt-3 border-t border-border">
+                      {group.rows.map((row) => (
+                        <div
+                          key={`${group.title}-${row.label}`}
+                          className="grid grid-cols-[minmax(7rem,2fr)_3fr] gap-4 border-b border-border py-3"
+                        >
+                          <dt className="text-small text-muted-foreground">{row.label}</dt>
+                          <dd className="font-mono text-tech break-words">{row.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                ))}
+              </div>
+            )}
+          </PageContainer>
+        </section>
+      )}
+    </>
   );
+}
+
+function Crumb({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-1.5">
+      <Link href={href} className="transition-colors hover:text-foreground">
+        {children}
+      </Link>
+      <ChevronRight aria-hidden className="size-3.5" />
+    </li>
+  );
+}
+
+/** The spec sheet plus the product's identifiers and logistics data, as grouped rows. */
+function detailRows(product: Product, sku: string | undefined) {
+  const technical = (product.specifications ?? [])
+    .filter((s) => s.name?.trim() && s.value?.trim())
+    .map((s) => ({ label: s.name.trim(), value: s.value.trim() }));
+
+  const dims = product.dimensions;
+  const identifiers = [
+    { label: "Model", value: product.model },
+    { label: "SKU", value: sku },
+    { label: "MPN", value: product.mpn },
+    { label: "UPC", value: product.upc },
+    { label: "EAN", value: product.ean },
+    { label: "JAN", value: product.jan },
+    { label: "ISBN", value: product.isbn },
+    {
+      label: "Weight",
+      value: (product.weight ?? 0) > 0 ? `${product.weight} ${product.weightClass ?? ""}`.trim() : undefined,
+    },
+    {
+      label: "Package (L × W × H)",
+      value:
+        dims && (dims.length || dims.width || dims.height)
+          ? `${dims.length || 0} × ${dims.width || 0} × ${dims.height || 0} ${product.lengthClass ?? ""}`.trim()
+          : undefined,
+    },
+    {
+      label: "Minimum order",
+      value: (product.minimumQuantity ?? 1) > 1 ? `${product.minimumQuantity} units` : undefined,
+    },
+    { label: "Tags", value: product.productTags },
+  ].filter((row): row is { label: string; value: string } => Boolean(row.value?.toString().trim()));
+
+  return [
+    { title: "Technical data", rows: technical },
+    { title: "Product details", rows: identifiers },
+  ].filter((group) => group.rows.length > 0);
 }

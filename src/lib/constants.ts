@@ -61,10 +61,23 @@ export const PRODUCT_CATEGORIES = [
   "RFID LF and HF Pendrive Reader",
 ] as const;
 
-export const ORDER_STATUSES = [
-  "pending",
-  "processing",
-  "shipped",
-  "delivered",
-  "cancelled",
-] as const;
+/**
+ * Home page merchandising, by product slug: the hero and the four showcase
+ * sheets. Chosen for range (integrated, handheld, four-port, antenna, desktop)
+ * and because their photos are high-resolution shots on white, which the
+ * product plate needs — VSL-A1, UDR 105 and PVR 3 are shot on black and UHR 72
+ * on grey, so they show as boxes. Any slug that's disabled or out of stock is
+ * replaced automatically (see curateHome).
+ */
+export const HOME_FEATURED = {
+  hero: "udm9a",
+  showcase: ["uhr-2", "vsl-a2", "ua9", "udr-w101"],
+};
+
+/**
+ * How prices relate to GST, shown beside every price.
+ * ⚠ REVIEW: the cart doesn't calculate GST and no product records a rate, so
+ * this wording is a neutral placeholder — confirm whether list prices include
+ * GST and say so exactly (e.g. "Excl. 18% GST").
+ */
+export const GST_NOTE = "GST as applicable";

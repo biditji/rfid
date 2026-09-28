@@ -46,26 +46,73 @@ export async function getStorefrontCategories(): Promise<CategorySummary[]> {
  * The shape a product card actually renders.
  *
  * The full /products response is ~95 KB for 30 products, most of it rich-text
- * `description` and `specifications` that no card renders. Mapping to this
- * shape on the server keeps all of that out of the client payload.
+ * `description` and full `specifications` that no card renders. Mapping to
+ * this shape on the server keeps all of that out of the client payload.
  */
-export type ProductCard = {
+export type ProductSummary = {
   _id: string;
   name: string;
   slug: string;
   price: number;
   compareAtPrice?: number;
   stock: number;
+  /** Only set when it looks like a real product code (see `displaySku`). */
   sku?: string;
   categoryName: string | null;
   image: string | null;
   excerpt: string;
+  /** Minimum order quantity; tags ship in reels of hundreds. */
+  minimumQuantity: number;
+  /** Up to four headline specifications, in a fixed priority order. */
+  keySpecs: KeySpec[];
+  /** Overall size from the spec sheet, verbatim ("260 x 260 x 60 mm"). */
+  dimensions: string | null;
   /** Pre-lowercased haystack for client-side search. */
   searchText: string;
   createdAt?: string;
 };
 
-export function toProductCard(product: Product): ProductCard {
+export type KeySpec = { label: string; value: string };
+
+/**
+ * Specifications worth surfacing on a card, most important first, with the
+ * short label each is shown under. Names vary by supplier sheet ("Working
+ * Frequency", "RF Air Interface"), so each is matched by pattern.
+ */
+const KEY_SPEC_RULES: [RegExp, string][] = [
+  [/frequency/i, "Frequency"],
+  [/protocol|air interface/i, "Protocol"],
+  [/read(ing)?[\s/]*(write\s*)?(distance|range)|operating distance/i, "Read range"],
+  [/^gain$/i, "Gain"],
+  // "RF Air Interface" is the radio protocol, not a connection.
+  [/^(?!.*\bair\b).*interface/i, "Interface"],
+  [/protection|^sealing$/i, "Rating"],
+  [/chip/i, "Chip"],
+];
+
+function keySpecs(specs: Product["specifications"] | undefined): KeySpec[] {
+  const picked: KeySpec[] = [];
+  const used = new Set<string>();
+  for (const [pattern, label] of KEY_SPEC_RULES) {
+    // Each spec row can back only one label.
+    const spec = specs?.find((s) => !used.has(s.name) && pattern.test(s.name.trim()) && s.value?.trim());
+    if (spec) {
+      used.add(spec.name);
+      picked.push({ label, value: spec.value.trim() });
+    }
+    if (picked.length === 4) break;
+  }
+  return picked;
+}
+
+/**
+ * Several live products have a stock count typed into the SKU field ("3000",
+ * "0"). Showing "SKU 0" on a card reads as broken, so only codes containing a
+ * letter are displayed. The raw value still feeds search.
+ */
+const displaySku = (sku?: string) => (sku && /[a-z]/i.test(sku) ? sku.trim() : undefined);
+
+export function toProductSummary(product: Product): ProductSummary {
   const excerpt = truncate(stripHtml(product.description ?? ""), 200);
 
   return {
@@ -75,11 +122,17 @@ export function toProductCard(product: Product): ProductCard {
     price: product.price,
     compareAtPrice: product.compareAtPrice,
     stock: product.stock ?? 0,
-    sku: product.sku,
+    sku: displaySku(product.sku),
     categoryName: product.category?.name ?? null,
-    image: product.images?.[0] ?? null,
+    image: product.images?.find(Boolean) ?? null,
     excerpt,
-    searchText: [product.name, product.sku, product.productTags, excerpt]
+    minimumQuantity: Math.max(1, product.minimumQuantity ?? 1),
+    keySpecs: keySpecs(product.specifications),
+    dimensions:
+      product.specifications
+        ?.find((s) => /^(dimensions?|size|overall size)$/i.test(s.name.trim()))
+        ?.value.trim() || null,
+    searchText: [product.name, product.sku, product.category?.name, product.productTags, excerpt]
       .filter(Boolean)
       .join(" ")
       .toLowerCase(),
@@ -88,7 +141,7 @@ export function toProductCard(product: Product): ProductCard {
 }
 
 export type ProductCardsResult = {
-  cards: ProductCard[];
+  cards: ProductSummary[];
   /**
    * False when the backend didn't answer. Callers must render an error state
    * rather than an empty grid — "the shop has no products" and "we couldn't
@@ -100,8 +153,8 @@ export type ProductCardsResult = {
 /**
  * Fetch the live catalog in the trimmed card shape.
  *
- * @param limit Rows to request. The home page renders 13 cards; asking for
- *   exactly that instead of the whole catalog cuts the response by ~60%.
+ * @param limit Rows to request. Omit for the whole catalog — the home page and
+ *   /products both do, so they share one cached response.
  */
 export async function getProductCards(limit?: number): Promise<ProductCardsResult> {
   const { products, ok } = await getLiveProductsResult(limit);
@@ -116,7 +169,7 @@ export async function getProductCards(limit?: number): Promise<ProductCardsResul
     await connection();
   }
 
-  return { cards: products.map(toProductCard), ok };
+  return { cards: products.map(toProductSummary), ok };
 }
 
 /**
@@ -134,4 +187,62 @@ export async function getProductIndex(): Promise<{ slug: string; updatedAt?: str
   return products
     .filter((product) => typeof product.slug === "string" && product.slug.length > 0)
     .map((product) => ({ slug: product.slug, updatedAt: product.updatedAt }));
+}
+
+/**
+ * The home page's product slots, chosen from the live catalog.
+ *
+ * Until the admin has a "featured" flag, the selection is deterministic:
+ * in-stock RFID hardware (readers, antennas) with a photo and a spec sheet
+ * leads, highest price first as a proxy for flagship models, and the showcase
+ * takes one product per category so it reads as a range rather than four
+ * variants of one reader.
+ */
+export function curateHome(
+  cards: ProductSummary[],
+  /** Merchandising picks by slug; any that aren't live and in stock are filled automatically. */
+  featured: { hero?: string; showcase?: string[] } = {}
+): {
+  hero: ProductSummary | null;
+  showcase: ProductSummary[];
+  rail: ProductSummary[];
+} {
+  const isHardware = (p: ProductSummary) => /reader|antenna/i.test(p.categoryName ?? "");
+  const presentable = (p: ProductSummary) => Boolean(p.image) && p.keySpecs.length >= 2;
+  const rank = (p: ProductSummary) =>
+    (presentable(p) ? 0 : 2) + (isHardware(p) ? 0 : 1) + (p.stock > 0 ? 0 : 3);
+
+  const ranked = cards
+    .map((card, index) => ({ card, index }))
+    .sort((a, b) => rank(a.card) - rank(b.card) || b.card.price - a.card.price || a.index - b.index)
+    .map(({ card }) => card);
+
+  const bySlug = (slug: string) => cards.find((p) => p.slug === slug && p.stock > 0);
+
+  const hero = (featured.hero && bySlug(featured.hero)) || ranked.find(presentable) || ranked[0] || null;
+  const taken = new Set(hero ? [hero._id] : []);
+
+  const showcase: ProductSummary[] = [];
+  for (const slug of featured.showcase ?? []) {
+    const card = bySlug(slug);
+    if (card && !taken.has(card._id) && showcase.length < 4) {
+      showcase.push(card);
+      taken.add(card._id);
+    }
+  }
+  const categories = new Set([hero, ...showcase].map((p) => p?.categoryName ?? ""));
+  for (const pass of [0, 1]) {
+    for (const card of ranked) {
+      if (showcase.length === 4) break;
+      if (taken.has(card._id) || !card.image) continue;
+      if (pass === 0 && categories.has(card.categoryName ?? "")) continue;
+      showcase.push(card);
+      taken.add(card._id);
+      categories.add(card.categoryName ?? "");
+    }
+  }
+
+  const rail = ranked.filter((card) => !taken.has(card._id)).slice(0, 10);
+
+  return { hero, showcase, rail };
 }

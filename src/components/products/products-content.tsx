@@ -1,48 +1,68 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
-import { Search, SlidersHorizontal, X } from "lucide-react";
-import { formatCurrency, getStockStatus, cn } from "@/lib/utils";
-import { FadeIn } from "@/components/shared/fade-in";
-import { ProductImage } from "@/components/shared/product-image";
-import type { ProductCard } from "@/lib/products";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import type { ProductSummary } from "@/lib/products";
 import type { CategoryOption } from "@/lib/categories";
-
-const sortOptions = [
-  { label: "Newest", value: "newest" },
-  { label: "Price: Low → High", value: "price-asc" },
-  { label: "Price: High → Low", value: "price-desc" },
-  { label: "Name: A → Z", value: "name-asc" },
-];
+import { cn, slugify } from "@/lib/utils";
+import { ProductCard } from "@/components/products/product-card";
+import { SectionHeader } from "@/components/shared/section-header";
+import { PageContainer } from "@/components/shared/page-container";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { SORT_OPTIONS, type SortValue } from "@/lib/catalog";
 
 export function ProductsContent({
   products = [],
   categories = [],
   initialSearch = "",
   initialCategory = null,
+  initialSort = "newest",
+  initialInStock = false,
 }: {
-  products?: ProductCard[];
+  products?: ProductSummary[];
   /** The category tree, flattened in display order (see `categoryOptions`). */
   categories?: CategoryOption[];
   /** Seeded from ?search= on the server, so the first paint is already filtered. */
   initialSearch?: string;
   /** Seeded from ?category= on the server: the name of the matching option. */
   initialCategory?: string | null;
+  initialSort?: SortValue;
+  initialInStock?: boolean;
 }) {
   const [search, setSearch] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState<SortValue>(initialSort);
+  const [inStockOnly, setInStockOnly] = useState(initialInStock);
   const [showFilters, setShowFilters] = useState(false);
-  const [inStockOnly, setInStockOnly] = useState(false);
+  const ids = { search: useId(), sort: useId(), filters: useId(), stock: useId() };
+
+  // Mirror the filters into the URL so a filtered view survives reloads, the
+  // back button and being shared. replaceState: no history entry per keystroke,
+  // and no server round trip (Next syncs useSearchParams with it).
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set("search", search.trim());
+    if (selectedCategory) params.set("category", slugify(selectedCategory));
+    if (sortBy !== "newest") params.set("sort", sortBy);
+    if (inStockOnly) params.set("stock", "1");
+    const query = params.toString();
+    window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+  }, [search, selectedCategory, sortBy, inStockOnly]);
+
+  const counts = useMemo(() => {
+    const byName = new Map<string, number>();
+    for (const p of products) if (p.categoryName) byName.set(p.categoryName, (byName.get(p.categoryName) ?? 0) + 1);
+    return new Map(categories.map((c) => [c.name, c.names.reduce((sum, n) => sum + (byName.get(n) ?? 0), 0)]));
+  }, [products, categories]);
 
   const filtered = useMemo(() => {
     let result = [...products];
 
-    if (search) {
-      // `searchText` is pre-built and pre-lowercased on the server, so filtering
-      // is a plain substring test instead of stripping HTML on every keystroke.
-      const q = search.toLowerCase();
+    if (search.trim()) {
+      // `searchText` is pre-built and pre-lowercased on the server.
+      const q = search.trim().toLowerCase();
       result = result.filter((p) => p.searchText.includes(q));
     }
 
@@ -53,9 +73,7 @@ export function ProductsContent({
       result = result.filter((p) => p.categoryName !== null && option.names.includes(p.categoryName));
     }
 
-    if (inStockOnly) {
-      result = result.filter((p) => p.stock > 0);
-    }
+    if (inStockOnly) result = result.filter((p) => p.stock > 0);
 
     switch (sortBy) {
       case "price-asc":
@@ -68,243 +86,184 @@ export function ProductsContent({
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        result.sort(
-          (a, b) =>
-            new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
-        );
+        result.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
     }
 
     return result;
   }, [products, categories, search, selectedCategory, sortBy, inStockOnly]);
 
+  const hasFilters = Boolean(search.trim() || selectedCategory || inStockOnly);
+  const clearAll = () => {
+    setSearch("");
+    setSelectedCategory(null);
+    setInStockOnly(false);
+  };
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      {/* Header */}
-      <FadeIn>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-              Products
-            </h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              {filtered.length} product{filtered.length !== 1 ? "s" : ""}{" "}
-              {selectedCategory ? `in ${selectedCategory}` : "available"}
-            </p>
-          </div>
+    <PageContainer className="pt-10 pb-20 lg:pt-14">
+      <SectionHeader
+        as="h1"
+        eyebrow="Catalog"
+        title={selectedCategory ?? "Products"}
+        description="RFID readers, antennas and tags. Every listing shows its specifications, live stock and price."
+      />
 
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative flex-1 sm:w-64 sm:flex-initial">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
-              />
-            </div>
-
-            {/* Sort */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="hidden h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100 sm:block"
-            >
-              {sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-
-            {/* Mobile filter toggle */}
-            <button
-              type="button"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 lg:hidden"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-            </button>
-          </div>
+      {/* Toolbar */}
+      <div className="mt-10 flex flex-wrap items-end gap-3 border-b border-border pb-6">
+        <div className="min-w-0 flex-1 basis-64">
+          <label htmlFor={ids.search} className="sr-only">
+            Search products
+          </label>
+          <Input
+            id={ids.search}
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search model, SKU, frequency…"
+            startIcon={<Search />}
+            containerClassName="max-w-md"
+          />
         </div>
-      </FadeIn>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[220px_1fr]">
-        {/* Sidebar filters */}
-        <aside
-          className={cn(
-            "space-y-6 lg:block",
-            showFilters ? "block" : "hidden"
-          )}
+        <div className="flex items-center gap-2">
+          <label htmlFor={ids.sort} className="text-small text-muted-foreground max-sm:sr-only">
+            Sort
+          </label>
+          <NativeSelect id={ids.sort} value={sortBy} onChange={(e) => setSortBy(e.target.value as SortValue)}>
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+        <Button
+          variant="outline"
+          className="lg:hidden"
+          onClick={() => setShowFilters((open) => !open)}
+          aria-expanded={showFilters}
+          aria-controls={ids.filters}
+          startIcon={<SlidersHorizontal />}
         >
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              Category
-            </h3>
-            <div className="mt-3 space-y-1">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory(null)}
-                className={cn(
-                  "block w-full rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
-                  !selectedCategory
-                    ? "bg-zinc-100 font-medium text-zinc-900"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-                )}
-              >
-                All Products
-              </button>
+          Filters
+        </Button>
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-[15rem_1fr]">
+        {/* Filters */}
+        <aside
+          id={ids.filters}
+          aria-label="Filters"
+          className={cn("space-y-8 lg:block", showFilters ? "block" : "hidden")}
+        >
+          <fieldset>
+            <legend className="text-meta text-muted-foreground uppercase">Category</legend>
+            <ul className="mt-3 space-y-0.5">
+              <li>
+                <FilterButton pressed={!selectedCategory} onClick={() => setSelectedCategory(null)} count={products.length}>
+                  All products
+                </FilterButton>
+              </li>
               {categories.map((cat) => (
-                <button
-                  key={cat.name}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
-                    cat.depth > 0 && "pl-5 text-[13px]",
-                    selectedCategory === cat.name
-                      ? "bg-zinc-100 font-medium text-zinc-900"
-                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-                  )}
-                >
-                  {cat.name}
-                  <span className="text-xs text-zinc-400">
-                    {products.filter((p) => p.categoryName !== null && cat.names.includes(p.categoryName)).length}
-                  </span>
-                </button>
+                <li key={cat.name}>
+                  <FilterButton
+                    pressed={selectedCategory === cat.name}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    count={counts.get(cat.name) ?? 0}
+                    indent={cat.depth > 0}
+                  >
+                    {cat.name}
+                  </FilterButton>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </fieldset>
 
-          <div className="border-t border-zinc-200 pt-6">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          <fieldset className="border-t border-border pt-6">
+            <legend className="sr-only">Availability</legend>
+            <p aria-hidden className="text-meta text-muted-foreground uppercase">
               Availability
-            </h3>
-            <div className="mt-3 space-y-2">
-              <label className="flex items-center gap-2 text-sm text-zinc-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-zinc-300"
-                  checked={inStockOnly}
-                  onChange={(e) => setInStockOnly(e.target.checked)}
-                />
-                In Stock Only
-              </label>
-            </div>
-          </div>
-
-          {selectedCategory && (
-            <button
-              type="button"
-              onClick={() => setSelectedCategory(null)}
-              className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-700"
-            >
-              <X className="h-3.5 w-3.5" />
-              Clear filters
-            </button>
-          )}
+            </p>
+            <label htmlFor={ids.stock} className="mt-3 flex min-h-10 cursor-pointer items-center gap-3 text-small">
+              <input
+                id={ids.stock}
+                type="checkbox"
+                className="size-4 cursor-pointer accent-primary"
+                checked={inStockOnly}
+                onChange={(e) => setInStockOnly(e.target.checked)}
+              />
+              In stock only
+            </label>
+          </fieldset>
         </aside>
 
-        {/* Product grid */}
+        {/* Results */}
         <div>
+          <div className="mb-5 flex min-h-8 flex-wrap items-center justify-between gap-3">
+            <p className="text-small text-muted-foreground" aria-live="polite">
+              <span className="font-medium text-foreground tabular-nums">{filtered.length}</span>{" "}
+              {filtered.length === 1 ? "product" : "products"}
+              {selectedCategory && <> in {selectedCategory}</>}
+            </p>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearAll}>
+                Clear filters
+              </Button>
+            )}
+          </div>
+
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 py-20">
-              <p className="text-sm font-medium text-zinc-500">
-                No products found
+            <div className="bg-grid flex flex-col items-start rounded-card border border-border bg-surface px-6 py-14 sm:px-10">
+              <p className="text-h3">No products match</p>
+              <p className="mt-2 text-small text-muted-foreground">
+                Try a different search, or clear the filters to see the whole catalog.
               </p>
-              <p className="mt-1 text-xs text-zinc-400">
-                Try adjusting your search or filters
-              </p>
+              <Button variant="outline" className="mt-6" onClick={clearAll}>
+                Clear filters
+              </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((product, idx) => {
-                const stock = getStockStatus(product.stock);
-                return (
-                  <FadeIn key={product._id} delay={Math.min(idx * 0.03, 0.3)}>
-                    <Link
-                      href={`/products/${product.slug}`}
-                      className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
-                    >
-                      <div className="relative aspect-[3/2] bg-zinc-100 overflow-hidden">
-                        {product.image ? (
-                          <ProductImage
-                            src={product.image}
-                            alt={product.name}
-                            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 380px"
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center p-6">
-                            <div className="text-center">
-                              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-200/60">
-                                <span className="text-lg font-bold text-zinc-400">
-                                  {product.name.charAt(0)}
-                                </span>
-                              </div>
-                              <p className="mt-2 text-xs text-zinc-400">
-                                {product.categoryName || "Uncategorized"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {product.compareAtPrice && (
-                          <span className="absolute left-3 top-3 z-10 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                            Sale
-                          </span>
-                        )}
-                        {stock.color === "red" && (
-                          <span className="absolute right-3 top-3 z-10 rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
-                            Sold Out
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-1 flex-col p-4">
-                        <span className="text-xs font-medium text-zinc-400">
-                          {product.sku}
-                        </span>
-                        <h3 className="mt-1 text-sm font-semibold leading-snug text-zinc-900 group-hover:text-zinc-700 line-clamp-2">
-                          {product.name}
-                        </h3>
-                        <p className="mt-1.5 text-xs text-zinc-500 line-clamp-2">
-                          {product.excerpt}
-                        </p>
-                        <div className="mt-auto flex items-center justify-between pt-4">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-base font-bold text-zinc-900">
-                              {formatCurrency(product.price)}
-                            </span>
-                            {product.compareAtPrice && (
-                              <span className="text-xs text-zinc-400 line-through">
-                                {formatCurrency(product.compareAtPrice)}
-                              </span>
-                            )}
-                          </div>
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-0.5 text-xs font-medium",
-                              stock.color === "emerald"
-                                ? "bg-emerald-50 text-emerald-600"
-                                : stock.color === "amber"
-                                  ? "bg-amber-50 text-amber-600"
-                                  : "bg-red-50 text-red-600"
-                            )}
-                          >
-                            {stock.label}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </FadeIn>
-                );
-              })}
-            </div>
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((product, i) => (
+                <li key={product._id} className="flex">
+                  {/* The first row is above the fold; its photos are the LCP candidates. */}
+                  <ProductCard product={product} variant="grid" priority={i < 3} className="w-full" />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
+  );
+}
+
+function FilterButton({
+  pressed,
+  onClick,
+  count,
+  indent = false,
+  children,
+}: {
+  pressed: boolean;
+  onClick: () => void;
+  count: number;
+  indent?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn(
+        "relative flex min-h-10 w-full items-center justify-between gap-3 rounded-control px-3 text-left text-small transition-colors",
+        indent && "pl-6",
+        pressed ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      {pressed && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 bg-brand" />}
+      <span className="min-w-0 truncate">{children}</span>
+      <span className="shrink-0 text-meta tracking-normal text-muted-foreground tabular-nums">{count}</span>
+    </button>
   );
 }

@@ -1,0 +1,92 @@
+import Link from "next/link";
+import { ProductMedia } from "@/components/shared/product-image";
+import { OrderStatusBadge } from "@/components/shared/status-badge";
+import { ButtonLink } from "@/components/ui/button";
+import { formatCurrency, formatDate } from "@/lib/utils";
+
+/** The fields of GET /orders/myorders that the storefront renders. */
+export type CustomerOrder = {
+  _id: string;
+  createdAt: string;
+  totalPrice: number;
+  status: string;
+  items: {
+    _id: string;
+    quantity: number;
+    priceAtPurchase: number;
+    product: {
+      _id: string;
+      name: string;
+      slug: string;
+      images?: string[];
+      category?: { name: string } | null;
+    } | null;
+  }[];
+};
+
+/** A past order: header facts, status, and its line items. Used by /orders and /profile. */
+export function OrderCard({ order }: { order: CustomerOrder }) {
+  return (
+    <article className="overflow-hidden rounded-card border border-border bg-card">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-surface px-5 py-4 sm:px-6">
+        <dl className="flex flex-wrap gap-x-8 gap-y-3">
+          <Fact label="Placed">{formatDate(order.createdAt)}</Fact>
+          <Fact label="Total">
+            <span className="tabular-nums">{formatCurrency(order.totalPrice)}</span>
+          </Fact>
+          <Fact label="Order">
+            <span className="font-mono">{order._id.slice(-8).toUpperCase()}</span>
+          </Fact>
+        </dl>
+        <OrderStatusBadge status={order.status} size="md" />
+      </header>
+
+      <ul className="divide-y divide-border">
+        {order.items.map((item) => {
+          const product = item.product;
+          if (!product) {
+            return (
+              <li key={item._id} className="px-5 py-5 text-small text-muted-foreground sm:px-6">
+                This product is no longer available.
+              </li>
+            );
+          }
+          return (
+            <li key={item._id} className="flex flex-wrap items-center gap-4 px-5 py-5 sm:flex-nowrap sm:px-6">
+              <ProductMedia
+                src={product.images?.[0]}
+                alt=""
+                placeholder=""
+                sizes="80px"
+                className="size-20 shrink-0 rounded-control border border-border"
+              />
+              <div className="min-w-0 flex-1">
+                <Link href={`/products/${product.slug}`} className="text-body font-medium hover:underline">
+                  {product.name}
+                </Link>
+                {product.category?.name && (
+                  <p className="text-meta text-muted-foreground uppercase">{product.category.name}</p>
+                )}
+                <p className="mt-1 text-small text-muted-foreground tabular-nums">
+                  {formatCurrency(item.priceAtPurchase)} × {item.quantity}
+                </p>
+              </div>
+              <ButtonLink href={`/products/${product.slug}`} variant="outline" size="sm">
+                Buy again
+              </ButtonLink>
+            </li>
+          );
+        })}
+      </ul>
+    </article>
+  );
+}
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-meta text-muted-foreground uppercase">{label}</dt>
+      <dd className="mt-0.5 text-small font-medium">{children}</dd>
+    </div>
+  );
+}

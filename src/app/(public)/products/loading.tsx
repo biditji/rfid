@@ -1,3 +1,6 @@
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/components/shared/page-container";
+
 /**
  * Shown immediately when navigating into /products, so the click gives instant
  * feedback instead of the browser sitting on the previous page while the server
@@ -5,38 +8,36 @@
  */
 export default function ProductsLoading() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="h-8 w-36 animate-pulse rounded bg-zinc-100" />
-          <div className="mt-2 h-4 w-24 animate-pulse rounded bg-zinc-100" />
-        </div>
-        <div className="h-9 w-64 animate-pulse rounded-lg bg-zinc-100" />
+    <PageContainer className="pt-10 pb-20 lg:pt-14">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="mt-5 h-11 w-56" />
+      <Skeleton className="mt-4 h-5 w-full max-w-xl" />
+
+      <div className="mt-10 flex flex-wrap gap-3 border-b border-border pb-6">
+        <Skeleton className="h-10 w-full max-w-md" />
+        <Skeleton className="h-10 w-48" />
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[220px_1fr]">
-        <aside className="hidden space-y-3 lg:block">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-8 animate-pulse rounded-md bg-zinc-100" />
+      <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-[15rem_1fr]">
+        <div className="hidden space-y-2 lg:block">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-10" />
           ))}
-        </aside>
+        </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div
-              key={i}
-              className="overflow-hidden rounded-xl border border-zinc-200 bg-white"
-            >
-              <div className="aspect-[3/2] animate-pulse bg-zinc-100" />
-              <div className="space-y-2 p-4">
-                <div className="h-3 w-16 animate-pulse rounded bg-zinc-100" />
-                <div className="h-4 w-full animate-pulse rounded bg-zinc-100" />
-                <div className="h-4 w-2/3 animate-pulse rounded bg-zinc-100" />
-                <div className="mt-4 h-5 w-24 animate-pulse rounded bg-zinc-100" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-card border border-border">
+              <Skeleton className="aspect-[4/3] rounded-none" />
+              <div className="space-y-3 p-5">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4" />
+                <Skeleton className="mt-4 h-5 w-24" />
               </div>
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

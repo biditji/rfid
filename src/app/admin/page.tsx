@@ -29,13 +29,7 @@ import {
 import { fetchAllOrders, fetchDashboardStats } from "@/lib/api";
 import { monthlySeries, summarizeOrders, type AnalyticsOrder } from "@/lib/analytics";
 import Link from "next/link";
-
-const statusColors: Record<string, string> = {
-  Processing: "bg-amber-50 text-amber-700",
-  Shipped: "bg-blue-50 text-blue-700",
-  Delivered: "bg-emerald-50 text-emerald-700",
-  Cancelled: "bg-red-50 text-red-700",
-};
+import { OrderStatusBadge } from "@/components/shared/status-badge";
 
 type DashboardStats = {
   totalRevenue: number;
@@ -272,9 +266,7 @@ export default function DashboardPage() {
                   <td className="px-5 py-4 text-sm text-zinc-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                   <td className="px-5 py-4 text-sm font-medium text-zinc-900">{formatCurrency(order.totalPrice)}</td>
                   <td className="px-5 py-4">
-                    <span className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-medium", statusColors[order.status] || "bg-zinc-100 text-zinc-700")}>
-                      {order.status}
-                    </span>
+                    <OrderStatusBadge status={order.status} />
                   </td>
                 </tr>
               ))}

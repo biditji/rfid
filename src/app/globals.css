@@ -5,41 +5,86 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * ─── Design tokens ───────────────────────────────────────────────────────────
+ *
+ * Components use semantic roles only (bg-primary, text-muted-foreground,
+ * border-border, text-success …), never raw palette steps. The values live in
+ * the :root / .surface-inverse blocks below, so a dark section is a class on a
+ * wrapper, not a second set of classes on every element inside it.
+ *
+ * `inline` makes utilities reference the runtime variables directly, which is
+ * what lets `.surface-inverse` re-theme everything inside it.
+ */
 @theme inline {
+  /* Surfaces & text */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* Lines */
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Actions */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  /* Brand accent — the logo red. Marks, indicators and highlights only; the
+     interface itself stays neutral. */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+
+  /* Status */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-destructive: var(--danger);
+
+  /* Admin-only palettes */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Type families (next/font sets --font-inter / --font-jetbrains on <html>) */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+  --font-heading: var(--font-sans);
+
+  /*
+   * Radius: two families.
+   *   rounded-control — buttons, inputs, selects, small interactive controls
+   *   rounded-card    — product cards, content surfaces, media, panels
+   * rounded-full is reserved for status dots, circular controls and compact
+   * status tags. The shadcn sm…4xl steps are kept for the admin screens.
+   */
+  --radius-control: var(--radius);
+  --radius-card: calc(var(--radius) * 1.6667);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,31 +94,157 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@theme {
+  /*
+   * Type scale. Each role sets size, leading, tracking and weight together, so
+   * a heading is one class (`text-h2`), not four. Headings are fluid; body
+   * sizes are fixed.
+   *
+   *   display  hero headline only
+   *   h1       page titles
+   *   h2       section titles
+   *   h3       card / sub-section titles
+   *   lead     intro paragraphs
+   *   body     running text
+   *   small    secondary text, controls
+   *   meta     labels, eyebrows, metadata (pair with `uppercase` for eyebrows)
+   *   tech     technical values — always with `font-mono` (SKU, specs, bands)
+   */
+  --text-display: clamp(2.75rem, 1.35rem + 4.6vw, 5.5rem);
+  --text-display--line-height: 0.96;
+  --text-display--letter-spacing: -0.042em;
+  --text-display--font-weight: 600;
+
+  --text-h1: clamp(2.125rem, 1.55rem + 2.2vw, 3.25rem);
+  --text-h1--line-height: 1.04;
+  --text-h1--letter-spacing: -0.034em;
+  --text-h1--font-weight: 600;
+
+  --text-h2: clamp(1.75rem, 1.4rem + 1.35vw, 2.625rem);
+  --text-h2--line-height: 1.08;
+  --text-h2--letter-spacing: -0.028em;
+  --text-h2--font-weight: 600;
+
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.3;
+  --text-h3--letter-spacing: -0.014em;
+  --text-h3--font-weight: 600;
+
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.6;
+
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.35;
+  --text-meta--letter-spacing: 0.07em;
+  --text-meta--font-weight: 500;
+
+  --text-tech: 0.8125rem;
+  --text-tech--line-height: 1.45;
+  --text-tech--letter-spacing: -0.01em;
+
+  /* Elevation: hairlines do most of the work; shadows are for things that
+     physically sit above the page. */
+  --shadow-card: 0 1px 2px 0 oklch(0.21 0.006 286 / 0.05);
+  --shadow-raised: 0 18px 40px -18px oklch(0.21 0.006 286 / 0.28);
+  --shadow-overlay: 0 16px 48px -12px oklch(0.21 0.006 286 / 0.3);
+
+  /* Motion: CSS handles hover/focus (level 1) with these; GSAP handles
+     reveals and scroll storytelling with the matching curves in lib/motion. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --default-transition-duration: 180ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+
+  /* RFID system diagram: the reader's field and data leaving the reader. */
+  --animate-rf-wave: rf-wave 2.4s ease-out infinite;
+  @keyframes rf-wave {
+    0% {
+      opacity: 0.15;
+    }
+    25% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.15;
+    }
+  }
+  --animate-packet: packet 1.6s linear infinite;
+  @keyframes packet {
+    from {
+      transform: translateX(0);
+      opacity: 0;
+    }
+    20%,
+    80% {
+      opacity: 1;
+    }
+    to {
+      transform: translateX(56px);
+      opacity: 0;
+    }
+  }
+
+  --animate-skeleton: skeleton 1.8s ease-in-out infinite;
+  @keyframes skeleton {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
 :root {
+  --radius: 0.375rem;
+
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --surface: oklch(0.985 0.001 286);
+  --foreground: oklch(0.21 0.006 286);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.21 0.006 286);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.21 0.006 286);
+  --muted: oklch(0.967 0.001 286);
+  /* ≈6:1 on white, ≈5.5:1 on --muted — passes AA for small text. */
+  --muted-foreground: oklch(0.5 0.014 286);
+
+  --border: oklch(0.92 0.004 286);
+  --border-strong: oklch(0.86 0.006 286);
+  /* Form-control outlines need 3:1 against the page (WCAG 1.4.11). */
+  --input: oklch(0.66 0.012 286);
+  --ring: oklch(0.21 0.006 286);
+
+  --primary: oklch(0.21 0.006 286);
+  --primary-hover: oklch(0.32 0.006 286);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.546 0.245 262.881);
-  --chart-2: oklch(0.637 0.237 25.331);
-  --chart-3: oklch(0.723 0.219 149.579);
-  --chart-4: oklch(0.705 0.213 47.604);
-  --chart-5: oklch(0.585 0.233 277.117);
-  --radius: 0.625rem;
+  --secondary: oklch(0.967 0.001 286);
+  --secondary-foreground: oklch(0.21 0.006 286);
+  --accent: oklch(0.967 0.001 286);
+  --accent-foreground: oklch(0.21 0.006 286);
+
+  /* Logo red, deepened slightly so it clears 4.5:1 as text. */
+  --brand: oklch(0.556 0.216 27.9);
+  --brand-foreground: oklch(0.985 0 0);
+
+  --success: oklch(0.508 0.118 165.6);
+  --warning: oklch(0.555 0.163 49);
+  --info: oklch(0.49 0.11 245);
+  --danger: oklch(0.505 0.213 27.5);
+  --danger-foreground: oklch(0.985 0 0);
+
+  --chart-1: oklch(0.21 0.006 286);
+  --chart-2: oklch(0.556 0.216 27.9);
+  --chart-3: oklch(0.508 0.118 165.6);
+  --chart-4: oklch(0.555 0.163 49);
+  --chart-5: oklch(0.49 0.11 245);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -82,139 +253,147 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Measurement-grid line colour, used by the bg-grid utility. */
+  --grid-line: oklch(0.21 0.006 286 / 0.06);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.546 0.245 262.881);
-  --chart-2: oklch(0.637 0.237 25.331);
-  --chart-3: oklch(0.723 0.219 149.579);
-  --chart-4: oklch(0.705 0.213 47.604);
-  --chart-5: oklch(0.585 0.233 277.117);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/*
+ * The inverse surface: near-black industrial sections. The same roles, new
+ * values — so every component inside re-themes itself. `.dark` shares it, which
+ * keeps a full dark theme one class away without maintaining a second palette.
+ */
+.dark,
+.surface-inverse {
+  --background: oklch(0.155 0.004 286);
+  --surface: oklch(0.185 0.005 286);
+  --foreground: oklch(0.97 0.001 286);
+  --card: oklch(0.2 0.005 286);
+  --card-foreground: oklch(0.97 0.001 286);
+  --popover: oklch(0.2 0.005 286);
+  --popover-foreground: oklch(0.97 0.001 286);
+  --muted: oklch(0.245 0.006 286);
+  --muted-foreground: oklch(0.72 0.012 286);
+
+  --border: oklch(1 0 0 / 11%);
+  --border-strong: oklch(1 0 0 / 22%);
+  --input: oklch(1 0 0 / 40%);
+  --ring: oklch(0.97 0.001 286);
+
+  --primary: oklch(0.97 0.001 286);
+  --primary-hover: oklch(0.87 0.004 286);
+  --primary-foreground: oklch(0.21 0.006 286);
+  --secondary: oklch(0.245 0.006 286);
+  --secondary-foreground: oklch(0.97 0.001 286);
+  --accent: oklch(0.245 0.006 286);
+  --accent-foreground: oklch(0.97 0.001 286);
+
+  --brand: oklch(0.645 0.2 27.5);
+  --brand-foreground: oklch(0.985 0 0);
+
+  --success: oklch(0.77 0.13 163);
+  --warning: oklch(0.8 0.14 75);
+  --info: oklch(0.77 0.1 240);
+  --danger: oklch(0.71 0.17 25);
+  --danger-foreground: oklch(0.155 0.004 286);
+
+  --grid-line: oklch(1 0 0 / 0.055);
+}
+
+.surface-inverse {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-body text-foreground;
+    /* Inter: straight-legged l and open 4/6/9 read better in model codes. */
+    font-feature-settings: "cv05" 1, "cv08" 1;
+  }
+  ::selection {
+    background-color: color-mix(in oklab, var(--brand) 22%, transparent);
+  }
+  /* One focus treatment for every interactive element. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
-  .hide-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+  /* Technical measurement grid — hero plate and system diagrams. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
+
+  /* Ruler ticks: minor every 8px, major every 40px. Used under real
+     measurements (frequency scale, product dimensions) — never as decoration. */
+  .bg-ruler {
+    background-image:
+      linear-gradient(to right, var(--border-strong) 1px, transparent 1px),
+      linear-gradient(to right, var(--foreground) 1px, transparent 1px);
+    background-size:
+      8px 50%,
+      40px 100%;
+    background-position: left bottom;
+    background-repeat: repeat-x;
+  }
+
+  /* Product photos are shot on white. Multiplying them onto a neutral plate
+     drops the white box so every product sits on the same surface. */
+  .product-photo {
+    mix-blend-mode: multiply;
   }
 }
 
-/* Hero section animations & effects */
-@keyframes hero-float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+/* Rich-text product descriptions, mapped onto the same roles. */
+.prose {
+  --tw-prose-body: color-mix(in oklab, var(--foreground) 84%, var(--background));
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--foreground);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--border-strong);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
 }
 
-@keyframes hero-glow-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes spotlight-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.animate-hero-float {
-  animation: hero-float 6s ease-in-out infinite;
-}
-
-.animate-glow-pulse {
-  animation: hero-glow-pulse 4s ease-in-out infinite;
-}
-
-/* Hero spotlight slide-in. The slide is keyed on its product, so every change
-   remounts it and replays this; --spotlight-from picks the side it enters from. */
-@keyframes spotlight-enter {
-  from {
+/*
+ * Pre-hydration intro state.
+ *
+ * layout.tsx adds `.js` to <html> before first paint, so elements marked
+ * [data-intro] start hidden only when (a) scripts run and (b) the visitor
+ * hasn't asked for reduced motion. The hero timeline takes over from there. If
+ * hydration fails for any reason, the fallback animation reveals everything
+ * after 2.5s — content can never stay invisible.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-intro] {
     opacity: 0;
-    transform: translateX(var(--spotlight-from, 80px)) scale(0.95);
+    animation: intro-failsafe 0s linear 2.5s forwards;
   }
 }
 
-.animate-spotlight-enter {
-  animation: spotlight-enter 0.45s cubic-bezier(0.22, 0.68, 0.36, 1) both;
-}
-
-/* Hero category pills pop in as they stream in (they arrive after the hero's
-   GSAP intro has already run). Stagger comes from an inline animation-delay. */
-@keyframes pill-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
+@keyframes intro-failsafe {
+  to {
+    opacity: 1;
   }
-}
-
-.animate-pill-enter {
-  animation: pill-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-spotlight-enter,
-  .animate-pill-enter {
-    animation: none;
-  }
-}
-
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.glass-strong {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-.hero-spotlight-gradient {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 40%, #e8eef6 70%, #f0f4ff 100%);
-}
-
-.hero-search-glow:focus-within {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 4px 20px rgba(59, 130, 246, 0.08);
 }

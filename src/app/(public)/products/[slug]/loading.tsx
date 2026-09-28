@@ -1,28 +1,31 @@
-/** Instant skeleton for a product page while its data is fetched. */
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/components/shared/page-container";
+
+/** Instant skeleton in the product page's shape: gallery | purchase panel. */
 export default function ProductLoading() {
   return (
-    <div className="min-h-screen bg-zinc-50 pb-24">
-      <div className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="h-4 w-64 animate-pulse rounded bg-zinc-100" />
-        </div>
-      </div>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-16">
-        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-12 xl:gap-x-16">
-          <div className="aspect-square w-full animate-pulse rounded-2xl bg-zinc-200/70" />
-          <div className="mt-10 space-y-4 lg:mt-0">
-            <div className="h-5 w-28 animate-pulse rounded-full bg-zinc-200/70" />
-            <div className="h-10 w-4/5 animate-pulse rounded bg-zinc-200/70" />
-            <div className="h-8 w-32 animate-pulse rounded bg-zinc-200/70" />
-            <div className="space-y-2 pt-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-4 w-full animate-pulse rounded bg-zinc-200/70" />
-              ))}
-            </div>
-            <div className="h-12 w-48 animate-pulse rounded-lg bg-zinc-200/70" />
+    <>
+      <PageContainer className="pt-6">
+        <Skeleton className="h-4 w-72 max-w-full" />
+      </PageContainer>
+      <PageContainer className="grid grid-cols-1 gap-10 pt-6 pb-16 lg:grid-cols-12 lg:gap-12">
+        <Skeleton className="aspect-square rounded-card sm:aspect-[4/3] lg:col-span-7 lg:aspect-square" />
+        <div className="space-y-4 lg:col-span-5">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-12 w-3/4" />
+          <Skeleton className="h-16" />
+          <div className="space-y-3 border-t border-border pt-6">
+            <Skeleton className="h-9 w-40" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-6 w-36" />
           </div>
+          <div className="flex gap-3 pt-4">
+            <Skeleton className="h-14 w-40" />
+            <Skeleton className="h-14 flex-1" />
+          </div>
+          <Skeleton className="h-14" />
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </>
   );
 }

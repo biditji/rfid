@@ -1,122 +1,96 @@
 import Link from "next/link";
-import { Globe, Mail, Phone, MapPin } from "lucide-react";
 import { SITE_CONFIG, NAV_ITEMS, PRODUCT_CATEGORIES } from "@/lib/constants";
 import { slugify } from "@/lib/utils";
+import { PageContainer } from "@/components/shared/page-container";
+import { FOOTER_TRUST_LINE } from "@/content/claims";
+
+const linkClass = "text-small text-muted-foreground transition-colors hover:text-foreground";
 
 export function Footer() {
   return (
-    <footer className="border-t border-zinc-200 bg-zinc-50">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="flex items-center">
-              <img src="/logo.png" alt="Virtualsphere Technologies" className="h-8 object-contain" />
+    <footer className="border-t border-border bg-surface">
+      <PageContainer className="py-14 lg:py-20">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <Link href="/" className="inline-block" aria-label="Virtualsphere Technologies — home">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
+              <img src="/logo.png" alt="" width={1024} height={216} className="h-8 w-auto" />
             </Link>
-            <p className="mt-4 text-sm leading-relaxed text-zinc-500">
-              Professional RFID products and inventory management solutions for
-              modern enterprises. Trusted by 500+ companies worldwide.
+            <p className="mt-6 max-w-sm text-small text-pretty text-muted-foreground">
+              RFID readers, antennas and tags for inventory and asset tracking. {FOOTER_TRUST_LINE}
             </p>
           </div>
 
-          {/* Products */}
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-900">Products</h3>
-            <ul className="mt-4 space-y-2.5">
+          <nav aria-label="Product categories" className="lg:col-span-3">
+            <FooterHeading>Products</FooterHeading>
+            <ul className="mt-5 space-y-3">
               {PRODUCT_CATEGORIES.map((item) => (
                 <li key={item}>
-                  <Link
-                    href={`/products?category=${slugify(item)}`}
-                    className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-                  >
+                  <Link href={`/products?category=${slugify(item)}`} className={linkClass}>
                     {item}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
-          {/* Company */}
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-900">Company</h3>
-            <ul className="mt-4 space-y-2.5">
+          <nav aria-label="Company" className="lg:col-span-2">
+            <FooterHeading>Company</FooterHeading>
+            <ul className="mt-5 space-y-3">
               {NAV_ITEMS.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-                  >
+                  <Link href={item.href} className={linkClass}>
                     {item.label}
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link
-                  href="/admin"
-                  className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-                >
-                  Admin Dashboard
-                </Link>
-              </li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Contact */}
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-900">Contact</h3>
-            <ul className="mt-4 space-y-3">
-              <li className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
-                <span className="text-sm text-zinc-500">
-                  {SITE_CONFIG.address.street}
-                  <br />
-                  {SITE_CONFIG.address.city}, {SITE_CONFIG.address.state}{" "}
-                  {SITE_CONFIG.address.zip}
-                </span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <Phone className="h-4 w-4 shrink-0 text-zinc-400" />
-                <a
-                  href={`tel:${SITE_CONFIG.phone}`}
-                  className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-                >
+          <div className="lg:col-span-3">
+            <FooterHeading>Contact</FooterHeading>
+            <address className="mt-5 space-y-3 not-italic">
+              <p className="text-small text-muted-foreground">
+                {SITE_CONFIG.address.street}
+                <br />
+                {SITE_CONFIG.address.city}, {SITE_CONFIG.address.state} {SITE_CONFIG.address.zip}
+              </p>
+              <p>
+                <a href={`tel:${SITE_CONFIG.phone}`} className={`${linkClass} tabular-nums`}>
                   {SITE_CONFIG.phone}
                 </a>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <Mail className="h-4 w-4 shrink-0 text-zinc-400" />
-                <a
-                  href={`mailto:${SITE_CONFIG.email}`}
-                  className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-                >
+              </p>
+              <p>
+                <a href={`mailto:${SITE_CONFIG.email}`} className={`${linkClass} break-all`}>
                   {SITE_CONFIG.email}
                 </a>
-              </li>
-            </ul>
+              </p>
+            </address>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-zinc-200 pt-8 sm:flex-row">
-          <p className="text-sm text-zinc-400">
-            © {new Date().getFullYear()} Virtualsphere. All rights reserved.
+        <div className="mt-14 flex flex-col gap-4 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-small text-muted-foreground">
+            © {new Date().getFullYear()} Virtualsphere Technologies Pvt Ltd
           </p>
-          <div className="flex gap-6">
-            <Link
-              href="/privacy"
-              className="text-sm text-zinc-400 transition-colors hover:text-zinc-600"
-            >
-              Privacy Policy
-            </Link>
-            <Link
-              href="/terms"
-              className="text-sm text-zinc-400 transition-colors hover:text-zinc-600"
-            >
-              Terms & Conditions
-            </Link>
-          </div>
+          <ul className="flex gap-6">
+            <li>
+              <Link href="/privacy" className={linkClass}>
+                Privacy policy
+              </Link>
+            </li>
+            <li>
+              <Link href="/terms" className={linkClass}>
+                Terms &amp; conditions
+              </Link>
+            </li>
+          </ul>
         </div>
-      </div>
+      </PageContainer>
     </footer>
   );
+}
+
+function FooterHeading({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-meta text-foreground uppercase">{children}</h2>;
 }

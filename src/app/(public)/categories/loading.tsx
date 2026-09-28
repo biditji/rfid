@@ -1,23 +1,20 @@
-/** Instant skeleton for the categories listing. */
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/components/shared/page-container";
+
+/** Instant skeleton for the categories index. */
 export default function CategoriesLoading() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="h-8 w-56 animate-pulse rounded bg-zinc-100" />
-      <div className="mt-2 h-4 w-96 max-w-full animate-pulse rounded bg-zinc-100" />
-      <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="overflow-hidden rounded-xl border border-zinc-200 bg-white"
-          >
-            <div className="aspect-[2/1] animate-pulse bg-zinc-100" />
-            <div className="space-y-2 p-5">
-              <div className="h-4 w-32 animate-pulse rounded bg-zinc-100" />
-              <div className="h-3 w-full animate-pulse rounded bg-zinc-100" />
-            </div>
+    <PageContainer className="pt-10 pb-20 lg:pt-14">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="mt-5 h-11 w-80 max-w-full" />
+      <Skeleton className="mt-4 h-5 w-full max-w-xl" />
+      <div className="mt-12 border-t border-border">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="border-b border-border py-4">
+            <Skeleton className="h-10" />
           </div>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }
