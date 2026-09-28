@@ -9,12 +9,16 @@ export const SITE_CONFIG = {
   email: "info@Virtualspheretechnologies.in",
   phone: "+91-7050506400",
   address: {
-    street: "Wz-10B, Aslatpur, Janakpuri A-2, Near Gurudwara",
-    city: "New Delhi",
-    state: "Delhi",
-    zip: "110058",
+    street: "3rd Floor, D-318, D Block, Sector 10",
+    city: "Noida",
+    state: "Uttar Pradesh",
+    zip: "201301",
     country: "India",
   },
+  /** Google Maps listing for the office; every shown address links here. */
+  mapUrl: "https://maps.app.goo.gl/MsitHJVVx1vGh2uL7",
+  /** The pin from that listing, for the contact page's embedded map. */
+  mapCoordinates: "28.5925309,77.3330815",
   social: {
     twitter: "https://twitter.com/rfidhub",
     linkedin: "https://linkedin.com/company/rfidhub",

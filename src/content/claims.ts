@@ -4,7 +4,7 @@
  * Every statement in this file was carried over verbatim from the previous
  * storefront. None of it can be confirmed from the catalogue, the backend or
  * anything else in this codebase, and some of it conflicts with facts that can
- * be (the company is in New Delhi and prices in INR, but the copy mentions
+ * be (the company is in Noida and prices in INR, but the copy mentions
  * warehouses in Austin/Rotterdam/Singapore and FCC/IC certification).
  *
  * It is kept — not deleted, not rewritten — so the redesign doesn't change what
@@ -118,7 +118,7 @@ export const INDUSTRY_OUTCOMES: Record<"retail" | "logistics" | "healthcare" | "
 
 /**
  * Support hours. Shown in: contact page.
- * Flagged: given in "CT" (US Central Time) for a New Delhi office.
+ * Flagged: given in "CT" (US Central Time) for a Noida office.
  */
 export const SUPPORT_HOURS: { days: string; hours: string }[] = [
   { days: "Monday – Friday", hours: "8:00 AM – 6:00 PM CT" },

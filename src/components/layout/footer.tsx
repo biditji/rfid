@@ -50,10 +50,12 @@ export function Footer() {
           <div className="lg:col-span-3">
             <FooterHeading>Contact</FooterHeading>
             <address className="mt-5 space-y-3 not-italic">
-              <p className="text-small text-muted-foreground">
-                {SITE_CONFIG.address.street}
-                <br />
-                {SITE_CONFIG.address.city}, {SITE_CONFIG.address.state} {SITE_CONFIG.address.zip}
+              <p>
+                <a href={SITE_CONFIG.mapUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                  {SITE_CONFIG.address.street}
+                  <br />
+                  {SITE_CONFIG.address.city}, {SITE_CONFIG.address.state} {SITE_CONFIG.address.zip}
+                </a>
               </p>
               <p>
                 <a href={`tel:${SITE_CONFIG.phone}`} className={`${linkClass} tabular-nums`}>

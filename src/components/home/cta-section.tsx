@@ -44,9 +44,14 @@ export function CtaSection() {
             </a>
           </ContactRow>
           <ContactRow label="Visit">
-            <span className="text-small">
+            <a
+              href={SITE_CONFIG.mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-small hover:underline"
+            >
               {SITE_CONFIG.address.street}, {SITE_CONFIG.address.city} {SITE_CONFIG.address.zip}
-            </span>
+            </a>
           </ContactRow>
         </dl>
       </PageContainer>

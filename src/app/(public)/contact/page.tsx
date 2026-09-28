@@ -44,11 +44,13 @@ export default async function ContactPage({ searchParams }: Props) {
             <dl className="mt-6 border-t border-border">
               <Row label="Address">
                 <address className="not-italic">
-                  {SITE_CONFIG.address.street}
-                  <br />
-                  {SITE_CONFIG.address.city}, {SITE_CONFIG.address.state} {SITE_CONFIG.address.zip}
-                  <br />
-                  {SITE_CONFIG.address.country}
+                  <a href={SITE_CONFIG.mapUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    {SITE_CONFIG.address.street}
+                    <br />
+                    {SITE_CONFIG.address.city}, {SITE_CONFIG.address.state} {SITE_CONFIG.address.zip}
+                    <br />
+                    {SITE_CONFIG.address.country}
+                  </a>
                 </address>
               </Row>
               <Row label="Phone">
@@ -86,12 +88,12 @@ export default async function ContactPage({ searchParams }: Props) {
 
       <div className="border-t border-border">
         <iframe
-          src="https://maps.google.com/maps?q=28.6214786,77.0764395&hl=en&z=16&output=embed"
+          src={`https://maps.google.com/maps?q=${SITE_CONFIG.mapCoordinates}&hl=en&z=16&output=embed`}
           className="block h-112 w-full grayscale"
           style={{ border: 0 }}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
-          title="Map: Virtualsphere Technologies, Janakpuri, New Delhi"
+          title="Map: Virtualsphere Technologies, Sector 10, Noida"
         />
       </div>
     </>
