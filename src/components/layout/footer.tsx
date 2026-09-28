@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Globe, Mail, Phone, MapPin } from "lucide-react";
-import { SITE_CONFIG, NAV_ITEMS } from "@/lib/constants";
+import { SITE_CONFIG, NAV_ITEMS, PRODUCT_CATEGORIES } from "@/lib/constants";
+import { slugify } from "@/lib/utils";
 
 export function Footer() {
   return (
@@ -22,18 +23,16 @@ export function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-zinc-900">Products</h3>
             <ul className="mt-4 space-y-2.5">
-              {["RFID Tags", "RFID Readers", "RFID Antennas", "RFID Labels", "Starter Kits"].map(
-                (item) => (
-                  <li key={item}>
-                    <Link
-                      href="/products"
-                      className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-                    >
-                      {item}
-                    </Link>
-                  </li>
-                )
-              )}
+              {PRODUCT_CATEGORIES.map((item) => (
+                <li key={item}>
+                  <Link
+                    href={`/products?category=${slugify(item)}`}
+                    className="text-sm text-zinc-500 transition-colors hover:text-zinc-900"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

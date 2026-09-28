@@ -46,13 +46,19 @@ export const ADMIN_NAV = {
   ],
 } as const;
 
+/**
+ * The footer's category links, in catalog order. These are fixed text, so
+ * keep them in step with the category names in the admin panel.
+ */
 export const PRODUCT_CATEGORIES = [
-  "RFID Tags",
-  "RFID Readers",
-  "RFID Antennas",
-  "RFID Labels",
-  "RFID Kits",
-  "Accessories",
+  "Integrated Reader",
+  "Four Port Reader",
+  "Eight Port Reader",
+  "RFID UHF Antenna",
+  "Handheld Reader",
+  "UHF Desktop Reader",
+  "HF RFID Desktop Reader",
+  "RFID LF and HF Pendrive Reader",
 ] as const;
 
 export const ORDER_STATUSES = [
