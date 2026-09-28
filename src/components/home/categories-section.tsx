@@ -2,65 +2,21 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { Tag, Cpu, Antenna, StickyNote, Package, Wrench } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import type { CategorySummary } from "@/lib/categories";
+import { categoryColors, categoryIcon } from "@/components/shared/category-visuals";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const categoryCards = [
-  {
-    name: "RFID Tags",
-    slug: "rfid-tags",
-    description: "Passive UHF tags for asset tracking and item-level ID",
-    icon: Tag,
-    count: 3,
-    accent: "bg-blue-50 text-blue-600",
-  },
-  {
-    name: "RFID Readers",
-    slug: "rfid-readers",
-    description: "Fixed and handheld readers for enterprise environments",
-    icon: Cpu,
-    count: 4,
-    accent: "bg-amber-50 text-amber-600",
-  },
-  {
-    name: "RFID Antennas",
-    slug: "rfid-antennas",
-    description: "Panel and slim-line antennas for optimal coverage",
-    icon: Antenna,
-    count: 2,
-    accent: "bg-emerald-50 text-emerald-600",
-  },
-  {
-    name: "RFID Labels",
-    slug: "rfid-labels",
-    description: "Smart labels for thermal printers and inline encoding",
-    icon: StickyNote,
-    count: 1,
-    accent: "bg-violet-50 text-violet-600",
-  },
-  {
-    name: "Starter Kits",
-    slug: "rfid-kits",
-    description: "Everything you need to get started in one box",
-    icon: Package,
-    count: 1,
-    accent: "bg-rose-50 text-rose-600",
-  },
-  {
-    name: "Accessories",
-    slug: "accessories",
-    description: "Cables, mounts, enclosures, and peripherals",
-    icon: Wrench,
-    count: 1,
-    accent: "bg-zinc-100 text-zinc-600",
-  },
-];
 
-export function CategoriesSection() {
+/**
+ * Shop-by-category cards for the real top-level categories, with product
+ * counts rolled up from their subcategories. This used to be a hard-coded list
+ * of categories the store doesn't have, with made-up counts.
+ */
+export function CategoriesSection({ categories }: { categories: CategorySummary[] }) {
   const containerRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
@@ -99,6 +55,8 @@ export function CategoriesSection() {
     });
   }, { scope: containerRef });
 
+  if (categories.length === 0) return null;
+
   return (
     <section ref={containerRef} className="bg-white py-20 lg:py-24 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -120,32 +78,35 @@ export function CategoriesSection() {
         </div>
 
         <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {categoryCards.map((cat) => (
-            <Link
-              key={cat.slug}
-              href={`/products?category=${cat.slug}`}
-              className="category-card group flex items-start gap-4 rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm transition-all duration-300 hover:border-zinc-200 hover:shadow-md hover:-translate-y-1"
-            >
-              <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${cat.accent}`}
+          {categories.map((cat, index) => {
+            const Icon = categoryIcon(cat.name);
+            return (
+              <Link
+                key={cat.id}
+                href={`/products?category=${encodeURIComponent(cat.param)}`}
+                className="category-card group flex items-start gap-4 rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm transition-all duration-300 hover:border-zinc-200 hover:shadow-md hover:-translate-y-1"
               >
-                <cat.icon className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-zinc-900 transition-colors group-hover:text-blue-600">
-                    {cat.name}
-                  </h3>
-                  <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
-                    {cat.count}
-                  </span>
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${categoryColors(index).accent}`}
+                >
+                  <Icon className="h-6 w-6" />
                 </div>
-                <p className="mt-1 text-sm text-zinc-500 line-clamp-2">
-                  {cat.description}
-                </p>
-              </div>
-            </Link>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-zinc-900 transition-colors group-hover:text-blue-600">
+                      {cat.name}
+                    </h3>
+                    <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+                      {cat.productCount}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-500 line-clamp-2">
+                    {cat.description}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

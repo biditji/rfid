@@ -84,11 +84,10 @@ export default function NewCategoryPage() {
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("rfid_token") || "";
 
       let imageUrl = "";
       if (selectedImage) {
-        imageUrl = await uploadImage(selectedImage, token);
+        imageUrl = await uploadImage(selectedImage);
       }
 
       const payload = {
@@ -109,7 +108,7 @@ export default function NewCategoryPage() {
         image: imageUrl || undefined,
       };
 
-      await createCategory(payload, token);
+      await createCategory(payload);
       // Flush the storefront cache so the change is visible right away.
       await revalidateCategories();
 

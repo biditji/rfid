@@ -155,11 +155,10 @@ export default function NewProductPage() {
     }
 
     try {
-      const token = localStorage.getItem("rfid_token") || "";
 
       let imageUrls: string[] = [];
       if (selectedImages.length > 0) {
-        const uploadedPaths = await uploadImages(selectedImages, token);
+        const uploadedPaths = await uploadImages(selectedImages);
         imageUrls = [...uploadedPaths];
       }
 
@@ -202,7 +201,7 @@ export default function NewProductPage() {
         slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""),
       };
 
-      await createProduct(payload, token);
+      await createProduct(payload);
       // Flush the storefront cache so the change is visible right away.
       await revalidateProducts();
 

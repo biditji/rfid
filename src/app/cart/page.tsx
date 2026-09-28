@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function CartPage() {
+  const { user } = useAuth();
   const { items, cartTotal, loading, removeFromCart, updateQuantity, refreshCart } = useCart();
   const router = useRouter();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -40,11 +42,10 @@ export default function CartPage() {
         return;
       }
 
-      setCheckoutLoading(true);
-      const token = localStorage.getItem("rfid_token");
-      if (!token) return router.push("/login");
+      if (!user) return router.push("/login?redirect=/cart");
 
-      const { order, razorpayOrderId } = await createOrder(shippingAddress, phoneNumber, token);
+      setCheckoutLoading(true);
+      const { order, razorpayOrderId } = await createOrder(shippingAddress, phoneNumber);
 
       const res = await loadRazorpayScript();
       if (!res) {
@@ -62,14 +63,11 @@ export default function CartPage() {
         order_id: razorpayOrderId,
         handler: async function (response: any) {
           try {
-            await verifyRazorpayPayment(
-              {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              },
-              token
-            );
+            await verifyRazorpayPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
             await refreshCart();
             router.push("/orders");
           } catch (verifyError) {

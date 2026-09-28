@@ -1,21 +1,62 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://backend.indiarfidshop.com/api';
+import { API_URL } from './config';
+import type { AuthResponse, Category, Product, ProductPage } from '@/types';
 
 const isServer = typeof window === 'undefined';
 
 /**
  * How long the server may reuse a cached response for a public read.
- * The backend's /products endpoint intermittently takes 20-30s to answer, so
- * without this every single visitor pays that cost. With it, one unlucky
- * request warms the cache and everyone else is served instantly.
+ *
+ * The backend runs under Passenger on shared hosting: a request that arrives
+ * against a cold worker waits tens of seconds for the process to boot (55s and
+ * 94s were both measured against production). Serving these routes from the
+ * cache means that cost is paid by a background revalidation instead of by a
+ * visitor.
  */
 export const REVALIDATE = {
-  products: 300,
+  // Deliberately under the backend's measured spin-down window. Passenger
+  // retires an idle worker after ~5 minutes (probed: 4 min idle answered in
+  // 0.19s, 6 min idle in 25.7s), and the next request then pays a 25-94s
+  // respawn. Revalidating at 4 minutes means ordinary traffic re-touches the
+  // origin just often enough to keep the worker alive, so the cache refresh
+  // lands on a warm process instead of paying for a boot.
+  products: 240,
   categories: 600,
 } as const;
 
-/** Abort a read that hangs, instead of blocking a render indefinitely. */
-const READ_TIMEOUT_MS = 45_000;
+/**
+ * Budget for a single attempt at a public read.
+ *
+ * This is deliberately far below the backend's worst observed cold start. The
+ * point is not to outwait a stalled backend — it is to bound how long a render
+ * can sit on one. Product sections render inside their own Suspense boundary,
+ * so exceeding this budget costs a skeleton and a retry affordance, never a
+ * blank page. Two attempts at 10s plus backoff caps a failing read at ~21s.
+ */
+const READ_TIMEOUT_MS = 10_000;
+
+/**
+ * Statuses worth trying again: the request may well succeed on a second go.
+ * Everything else (400/401/403/404/422 …) is a deterministic answer — retrying
+ * it just multiplies load on an already unhealthy backend.
+ */
+const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+/**
+ * Page size for walking the full catalog. `GET /products` pages its results
+ * and defaults to 50 per page, so a single unparameterised call silently drops
+ * everything past the 50th product.
+ */
+const CATALOG_PAGE_SIZE = 100;
+
+export class ApiError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
 
 type ReadOptions = {
   /** Seconds the Next.js server may serve this response from cache. */
@@ -26,8 +67,19 @@ type ReadOptions = {
   retries?: number;
 };
 
+/** A transport-level failure (DNS, reset, abort) is always worth one more try. */
+const isTransientNetworkError = (error: unknown) =>
+  error instanceof TypeError || // fetch throws TypeError on network failure
+  (error instanceof DOMException && error.name === 'TimeoutError') ||
+  (error as { name?: string })?.name === 'AbortError' ||
+  (error as { name?: string })?.name === 'TimeoutError';
+
+const backoffMs = (attempt: number) =>
+  // Exponential with jitter, so a burst of renders doesn't retry in lockstep.
+  Math.round(400 * 2 ** attempt * (0.5 + Math.random()));
+
 /**
- * GET a public endpoint with a hard timeout and one retry.
+ * GET a public endpoint with a bounded time budget and one retry.
  *
  * On the server the response is cached for `revalidate` seconds. In the browser
  * (the admin panel) it always goes to the network, so admins never see stale data.
@@ -49,70 +101,186 @@ async function readJson<T>(
         signal: AbortSignal.timeout(timeoutMs),
       });
 
-      if (res.status === 404) {
-        const notFound = new Error(`Not found: ${path}`);
-        (notFound as any).status = 404;
-        throw notFound;
-      }
+      if (res.ok) return (await res.json()) as T;
 
-      // Retry 5xx (backend restart / cold start), but not 4xx.
-      if (!res.ok) {
-        const err = new Error(`Request failed: ${path} -> ${res.status}`);
-        (err as any).status = res.status;
-        if (res.status < 500 || attempt === retries) throw err;
-        lastError = err;
-        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
-        continue;
-      }
+      const error = new ApiError(`Request failed: ${path} -> ${res.status}`, res.status);
 
-      return (await res.json()) as T;
+      // A definitive answer (including 404) — don't spend another attempt on it.
+      if (!RETRYABLE_STATUS.has(res.status) || attempt === retries) throw error;
+
+      lastError = error;
     } catch (error) {
-      if ((error as any)?.status === 404) throw error;
+      const status = error instanceof ApiError ? error.status : undefined;
+
+      // Rethrow anything already classified as non-retryable.
+      if (status !== undefined && !RETRYABLE_STATUS.has(status)) throw error;
+      if (status === undefined && !isTransientNetworkError(error)) throw error;
+
       lastError = error;
       if (attempt === retries) break;
-      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
     }
+
+    await new Promise((resolve) => setTimeout(resolve, backoffMs(attempt)));
   }
 
-  throw lastError instanceof Error ? lastError : new Error(`Request failed: ${path}`);
+  throw lastError instanceof Error ? lastError : new ApiError(`Request failed: ${path}`);
 }
 
+/** The backend's own error message, or `fallback` when the body has none. */
+async function messageFrom(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body?.message === 'string' && body.message) return body.message;
+  } catch {
+    // Not JSON: a proxy's HTML error page, or an empty 502.
+  }
+  return fallback;
+}
+
+/**
+ * Where authenticated calls go. The browser never holds the backend token —
+ * it lives in the httpOnly session cookie — so browser calls go through this
+ * app's `/api/backend` route, which attaches the token server-side. Server
+ * code (the auth route handlers) talks to the backend directly.
+ */
+const requestBase = () => (isServer ? API_URL : '/api/backend');
+
+type RequestOptions = {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  /** Sent as JSON, unless it's FormData, which sets its own multipart header. */
+  body?: unknown;
+  /** Shown when the backend doesn't explain the failure itself. */
+  errorMessage: string;
+};
+
+/**
+ * An authenticated or mutating call. Never cached and never retried: repeating
+ * a POST that timed out could place the same order twice.
+ *
+ * Failures throw an `ApiError` carrying the backend's message when it sent
+ * one, so forms can show "SKU already exists" rather than a generic error.
+ */
+async function request<T>(
+  path: string,
+  { method = 'GET', body, errorMessage }: RequestOptions
+): Promise<T> {
+  const headers: Record<string, string> = {};
+
+  let payload: BodyInit | undefined;
+  if (body instanceof FormData) {
+    payload = body;
+  } else if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    payload = JSON.stringify(body);
+  }
+
+  const res = await fetch(`${requestBase()}${path}`, {
+    method,
+    headers,
+    body: payload,
+    cache: 'no-store',
+  });
+
+  if (!res.ok) throw new ApiError(await messageFrom(res, errorMessage), res.status);
+  return (await res.json()) as T;
+}
+
+/** Page size for walking the backend's paginated admin lists (50 by default). */
+const ADMIN_PAGE_SIZE = 100;
+
+/**
+ * Every row of a paginated admin endpoint. `GET /orders` and
+ * `GET /admin/users` return 50 rows unless asked for a page, so a single call
+ * silently hid everything past the 50th order or customer.
+ */
+async function requestAllPages<T>(
+  path: string,
+  key: 'orders' | 'users',
+  errorMessage: string
+): Promise<T[]> {
+  type Page = { [k: string]: unknown; pages?: number };
+  const pageUrl = (page: number) => `${path}?page=${page}&limit=${ADMIN_PAGE_SIZE}`;
+  const rowsOf = (data: Page | T[]) =>
+    (Array.isArray(data) ? data : ((data[key] as T[] | undefined) ?? []));
+
+  const first = await request<Page | T[]>(pageUrl(1), { errorMessage });
+  if (Array.isArray(first)) return first;
+
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, (first.pages ?? 1) - 1) }, (_, i) =>
+      request<Page>(pageUrl(i + 2), { errorMessage })
+    )
+  );
+  return [first, ...rest].flatMap(rowsOf);
+}
+
+// ─── Public catalog reads ─────────────────────────────────────────────────────
 
 /**
  * Catalog fetch that reports failure instead of hiding it behind an empty array.
  * A caller that prerenders needs to tell "the shop has no products" apart from
  * "the backend didn't answer in time" — caching the latter as a static page
  * leaves the site showing "No products available" until the next revalidation.
+ *
+ * @param limit Fetch only the first `limit` products. Omit it to walk every
+ *   page of the catalog.
+ * @param activeOnly Drop products an admin has disabled. Every storefront read
+ *   sets this; the admin panel doesn't, so it can still list and re-enable them.
  */
-export async function fetchProductsResult(): Promise<{ products: any[]; ok: boolean }> {
-  try {
-    const data = await readJson<any>('/products', {
+export async function fetchProductsResult(
+  { limit, activeOnly = false }: { limit?: number; activeOnly?: boolean } = {}
+): Promise<{ products: Product[]; ok: boolean }> {
+  const readPage = async (page: number, pageSize: number) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+    if (activeOnly) params.set('status', 'true');
+    const data = await readJson<ProductPage>(`/products?${params}`, {
       revalidate: REVALIDATE.products,
       tags: ['products'],
-      retries: 2,
     });
-    const products = data?.products ?? data;
-    return { products: Array.isArray(products) ? products : [], ok: true };
+    return { products: data?.products ?? [], pages: data?.pages ?? 1 };
+  };
+
+  try {
+    if (limit) return { products: (await readPage(1, limit)).products, ok: true };
+
+    const first = await readPage(1, CATALOG_PAGE_SIZE);
+    const rest = await Promise.all(
+      Array.from({ length: Math.max(0, first.pages - 1) }, (_, i) =>
+        readPage(i + 2, CATALOG_PAGE_SIZE)
+      )
+    );
+    return { products: [first, ...rest].flatMap((page) => page.products), ok: true };
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error(`[api] products fetch failed: ${(error as Error).message}`);
     return { products: [], ok: false };
   }
 }
 
-export async function fetchProducts() {
+/** Every product, enabled or not — what the admin panel's tables need. */
+export async function fetchProducts(): Promise<Product[]> {
   return (await fetchProductsResult()).products;
 }
 
-export async function fetchProductBySlug(slug: string) {
+export async function fetchProductBySlug(slug: string): Promise<Product | null> {
   try {
-    return await readJson<any>(`/products/slug/${encodeURIComponent(slug)}`, {
+    return await readJson<Product>(`/products/slug/${encodeURIComponent(slug)}`, {
       revalidate: REVALIDATE.products,
       tags: ['products', `product:${slug}`],
     });
   } catch (error) {
-    if ((error as any)?.status === 404) return null;
-    console.error('Error fetching product by slug:', error);
+    if ((error as ApiError)?.status !== 404) {
+      console.error('Error fetching product by slug:', error);
+    }
     return null;
+  }
+}
+
+export async function fetchProductById(id: string): Promise<Product | null> {
+  try {
+    return await readJson<Product>(`/products/${id}`);
+  } catch (error) {
+    if ((error as ApiError)?.status === 404) return null;
+    throw error;
   }
 }
 
@@ -120,17 +288,17 @@ export async function fetchProductBySlug(slug: string) {
 export async function fetchCategoriesResult(filters?: {
   name?: string;
   status?: string;
-}): Promise<{ categories: any[]; ok: boolean }> {
+}): Promise<{ categories: Category[]; ok: boolean }> {
   try {
     const params = new URLSearchParams();
     if (filters?.name) params.set('name', filters.name);
     if (filters?.status !== undefined && filters?.status !== '') params.set('status', filters.status);
     const query = params.toString() ? `?${params.toString()}` : '';
-    const data = await readJson<any>(`/categories${query}`, {
+    const data = await readJson<Category[] | { categories: Category[] }>(`/categories${query}`, {
       revalidate: REVALIDATE.categories,
       tags: ['categories'],
     });
-    const categories = data?.categories ?? data;
+    const categories = Array.isArray(data) ? data : data?.categories;
     return { categories: Array.isArray(categories) ? categories : [], ok: true };
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -142,360 +310,182 @@ export async function fetchCategories(filters?: { name?: string; status?: string
   return (await fetchCategoriesResult(filters)).categories;
 }
 
-export async function fetchCategoryById(id: string) {
+export async function fetchCategoryById(id: string): Promise<Category | null> {
   try {
-    return await readJson<any>(`/categories/${id}`);
+    return await readJson<Category>(`/categories/${id}`);
   } catch (error) {
-    if ((error as any)?.status === 404) return null;
+    if ((error as ApiError)?.status === 404) return null;
     throw error;
   }
 }
 
-export async function createCategory(data: any, token: string) {
-  const res = await fetch(`${API_URL}/categories`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to create category');
-  }
-  
-  return await res.json();
-}
+// ─── Auth (server-side only: called by the /api/auth route handlers) ──────────
 
-export async function updateCategory(id: string, data: any, token: string) {
-  const res = await fetch(`${API_URL}/categories/${id}`, {
+export const login = (email: string, password: string) =>
+  request<AuthResponse>('/auth/login', {
+    method: 'POST',
+    body: { email, password },
+    errorMessage: 'Login failed',
+  });
+
+export const register = (name: string, email: string, password: string) =>
+  request<AuthResponse>('/auth/register', {
+    method: 'POST',
+    body: { name, email, password },
+    errorMessage: 'Registration failed',
+  });
+
+// ─── Admin: catalog management ────────────────────────────────────────────────
+
+export const createCategory = (data: unknown) =>
+  request<Category>('/categories', {
+    method: 'POST',
+    body: data,
+    errorMessage: 'Failed to create category',
+  });
+
+export const updateCategory = (id: string, data: unknown) =>
+  request<Category>(`/categories/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
+    body: data,
+    errorMessage: 'Failed to update category',
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to update category');
-  }
-  
-  return await res.json();
-}
 
-export async function deleteCategory(id: string, token: string) {
-  const res = await fetch(`${API_URL}/categories/${id}`, {
+export const deleteCategory = (id: string) =>
+  request<unknown>(`/categories/${id}`, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    errorMessage: 'Failed to delete category',
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to delete category');
-  }
-  
-  return await res.json();
-}
 
-export async function deleteCategoriesBulk(ids: string[], token: string) {
-  const res = await fetch(`${API_URL}/categories`, {
+export const deleteCategoriesBulk = (ids: string[]) =>
+  request<unknown>('/categories', {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ ids }),
+    body: { ids },
+    errorMessage: 'Failed to delete categories',
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to delete categories');
-  }
-  
-  return await res.json();
-}
 
-export async function createProduct(data: any, token: string) {
-  const res = await fetch(`${API_URL}/products`, {
+export const createProduct = (data: unknown) =>
+  request<Product>('/products', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
+    body: data,
+    errorMessage: 'Failed to create product',
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to create product');
-  }
-  
-  return await res.json();
-}
 
-export async function fetchProductById(id: string) {
-  try {
-    return await readJson<any>(`/products/${id}`);
-  } catch (error) {
-    if ((error as any)?.status === 404) return null;
-    throw error;
-  }
-}
-
-export async function updateProduct(id: string, data: any, token: string) {
-  const res = await fetch(`${API_URL}/products/${id}`, {
+export const updateProduct = (id: string, data: unknown) =>
+  request<Product>(`/products/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
+    body: data,
+    errorMessage: 'Failed to update product',
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to update product');
-  }
-  
-  return await res.json();
-}
 
-export async function deleteProduct(id: string, token: string) {
-  const res = await fetch(`${API_URL}/products/${id}`, {
+export const deleteProduct = (id: string) =>
+  request<unknown>(`/products/${id}`, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    errorMessage: 'Failed to delete product',
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to delete product');
-  }
-  
-  return await res.json();
-}
 
-export async function deleteProductsBulk(ids: string[], token: string) {
-  const res = await fetch(`${API_URL}/products`, {
+export const deleteProductsBulk = (ids: string[]) =>
+  request<unknown>('/products', {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ ids }),
+    body: { ids },
+    errorMessage: 'Failed to delete products',
   });
-  
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'Failed to delete products');
-  }
-  
-  return await res.json();
-}
 
-export async function fetchCart(token: string) {
-  const res = await fetch(`${API_URL}/cart`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store'
-  });
-  if (!res.ok) throw new Error('Failed to fetch cart');
-  return await res.json();
-}
-
-export async function addToCart(productId: string, quantity: number, token: string) {
-  const res = await fetch(`${API_URL}/cart/add`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ productId, quantity }),
-  });
-  if (!res.ok) throw new Error('Failed to add to cart');
-  return await res.json();
-}
-
-export async function removeFromCart(productId: string, token: string) {
-  const res = await fetch(`${API_URL}/cart/remove`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ productId }),
-  });
-  if (!res.ok) throw new Error('Failed to remove from cart');
-  return await res.json();
-}
-
-export async function updateCartQuantity(productId: string, quantity: number, token: string) {
-  const res = await fetch(`${API_URL}/cart/update`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ productId, quantity }),
-  });
-  if (!res.ok) throw new Error('Failed to update cart quantity');
-  return await res.json();
-}
-
-export async function createOrder(
-  shippingAddress: string,
-  phoneNumber: string,
-  token?: string
-) {
-  try {
-    const res = await fetch(`${API_URL}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ shippingAddress, phoneNumber }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create order');
-    return data;
-  } catch (error) {
-    console.error('Error creating order:', error);
-    throw error;
-  }
-}
-
-export async function verifyRazorpayPayment(data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }, token: string) {
-  const res = await fetch(`${API_URL}/payment/verify`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Payment verification failed');
-  return await res.json();
-}
-
-export async function fetchMyOrders(token: string) {
-  const res = await fetch(`${API_URL}/orders/myorders`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store'
-  });
-  if (!res.ok) throw new Error('Failed to fetch orders');
-  const data = await res.json();
-  return data.orders || data;
-}
-
-export async function fetchAllOrders(token: string) {
-  const res = await fetch(`${API_URL}/orders`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store'
-  });
-  if (!res.ok) throw new Error('Failed to fetch all orders');
-  const data = await res.json();
-  return data.orders || data;
-}
-
-export async function uploadImage(file: File, token: string) {
+/** Returns the stored path of the uploaded file, e.g. "/uploads/image-123.png". */
+export function uploadImage(file: File) {
   const formData = new FormData();
   formData.append('image', file);
-
-  const res = await fetch(`${API_URL}/upload`, {
+  return request<string>('/upload', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
     body: formData,
+    errorMessage: 'Failed to upload image',
   });
-
-  if (!res.ok) {
-    try {
-      const errData = await res.json();
-      throw new Error(errData.message || 'Failed to upload image');
-    } catch {
-      throw new Error('Failed to upload image');
-    }
-  }
-
-  const path = await res.json(); // Returns the path string
-  return path as string;
 }
 
-export async function uploadImages(files: File[], token: string) {
+/** Returns the stored paths of the uploaded files, in upload order. */
+export function uploadImages(files: File[]) {
   const formData = new FormData();
-  files.forEach(file => {
-    formData.append('images', file);
-  });
-
-  const res = await fetch(`${API_URL}/upload/multiple`, {
+  files.forEach((file) => formData.append('images', file));
+  return request<string[]>('/upload/multiple', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
     body: formData,
+    errorMessage: 'Failed to upload images',
   });
-
-  if (!res.ok) {
-    try {
-      const errData = await res.json();
-      throw new Error(errData.message || 'Failed to upload images');
-    } catch {
-      throw new Error('Failed to upload images');
-    }
-  }
-
-  return await res.json(); // Returns array of path strings
 }
 
-export async function fetchDashboardStats(token: string) {
-  const res = await fetch(`${API_URL}/admin/dashboard`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store'
+// ─── Cart & orders ────────────────────────────────────────────────────────────
+// Response shapes below aren't modelled in `@/types` yet.
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+export const fetchCart = () => request<any>('/cart', { errorMessage: 'Failed to fetch cart' });
+
+export const addToCart = (productId: string, quantity: number) =>
+  request<any>('/cart/add', {
+    method: 'POST',
+    body: { productId, quantity },
+    errorMessage: 'Failed to add to cart',
   });
-  if (!res.ok) throw new Error('Failed to fetch dashboard stats');
-  return await res.json();
+
+export const removeFromCart = (productId: string) =>
+  request<any>('/cart/remove', {
+    method: 'POST',
+    body: { productId },
+    errorMessage: 'Failed to remove from cart',
+  });
+
+export const updateCartQuantity = (productId: string, quantity: number) =>
+  request<any>('/cart/update', {
+    method: 'POST',
+    body: { productId, quantity },
+    errorMessage: 'Failed to update cart quantity',
+  });
+
+export const createOrder = (shippingAddress: string, phoneNumber: string) =>
+  request<any>('/orders', {
+    method: 'POST',
+    body: { shippingAddress, phoneNumber },
+    errorMessage: 'Failed to create order',
+  });
+
+export const verifyRazorpayPayment = (data: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}) =>
+  request<any>('/payment/verify', {
+    method: 'POST',
+    body: data,
+    errorMessage: 'Payment verification failed',
+  });
+
+export async function fetchMyOrders() {
+  const data = await request<any>('/orders/myorders', { errorMessage: 'Failed to fetch orders' });
+  return data.orders || data;
 }
 
-export async function fetchCustomers(token: string) {
-  const res = await fetch(`${API_URL}/admin/users`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store'
-  });
-  if (!res.ok) throw new Error('Failed to fetch customers');
-  const data = await res.json();
-  return data.users || data;
-}
+// ─── Admin: operations ────────────────────────────────────────────────────────
 
-export async function updateOrderStatus(orderId: string, status: string, token: string) {
-  const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
+/** Every placed order (the backend excludes ones still awaiting payment). */
+export const fetchAllOrders = () =>
+  requestAllPages<any>('/orders', 'orders', 'Failed to fetch all orders');
+
+export const updateOrderStatus = (orderId: string, status: string) =>
+  request<any>(`/orders/${orderId}/status`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ status }),
+    body: { status },
+    errorMessage: 'Failed to update order status',
   });
-  if (!res.ok) throw new Error('Failed to update order status');
-  return await res.json();
-}
 
-export async function updateUserRole(userId: string, role: string, token: string) {
-  const res = await fetch(`${API_URL}/admin/users/${userId}/role`, {
+export const fetchDashboardStats = () =>
+  request<any>('/admin/dashboard', { errorMessage: 'Failed to fetch dashboard stats' });
+
+export const fetchCustomers = () =>
+  requestAllPages<any>('/admin/users', 'users', 'Failed to fetch customers');
+
+export const updateUserRole = (userId: string, role: string) =>
+  request<any>(`/admin/users/${userId}/role`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ role }),
+    body: { role },
+    errorMessage: 'Failed to update user role',
   });
-  if (!res.ok) throw new Error('Failed to update user role');
-  return await res.json();
-}

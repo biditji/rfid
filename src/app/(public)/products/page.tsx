@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { ProductsContent } from "@/components/products/products-content";
-import { getProductCards } from "@/lib/products";
-import { slugify } from "@/lib/utils";
+import { ProductsUnavailable } from "@/components/shared/products-unavailable";
+import { getCategories, getProductCards } from "@/lib/products";
+import { buildCategoryTree, categoryOptions, resolveCategory } from "@/lib/categories";
 
 export const metadata: Metadata = {
   title: "Products",
@@ -21,26 +22,46 @@ export default async function ProductsPage({ searchParams }: Props) {
   // filters have to be applied server-side so the grid ships in the HTML (good
   // for SEO and first paint). The expensive part — the backend call — is still
   // served from the 5-minute fetch cache, so the render itself costs a few ms.
-  const [params, products] = await Promise.all([searchParams, getProductCards()]);
+  const [params, { cards, ok }, allCategories] = await Promise.all([
+    searchParams,
+    getProductCards(),
+    getCategories(),
+  ]);
 
-  const uniqueCategories = Array.from(
-    new Set(products.map((p) => p.categoryName).filter(Boolean))
-  ) as string[];
-  const categories = uniqueCategories.map((name, i) => ({ id: String(i), name }));
+  if (!ok) {
+    // The catalog is the whole point of this route, so the failure takes the
+    // page — but as a recoverable error with a retry, never an endless spinner.
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Products</h1>
+        <div className="mt-8">
+          <ProductsUnavailable />
+        </div>
+      </div>
+    );
+  }
 
-  // The hero search box and the category pills link here with a query string;
-  // resolve those into the filter state the grid starts from.
-  const categoryParam = first(params.category);
-  const initialCategory = categoryParam
-    ? (categories.find((c) => slugify(c.name) === slugify(categoryParam))?.name ?? null)
-    : null;
+  // The sidebar follows the real category tree, so a parent like "RFID Readers"
+  // lists (and filters to) everything filed under its subcategories.
+  const tree = buildCategoryTree(allCategories);
+  const liveNames = cards.flatMap((p) => (p.categoryName ? [p.categoryName] : []));
+  const categories = categoryOptions(tree, liveNames);
+
+  // The hero pills, category cards and /categories page link here with
+  // ?category=<slug>; resolve it into the filter the grid starts from.
+  const resolved = resolveCategory(tree, first(params.category));
+  if (resolved && !categories.some((c) => c.name === resolved.name)) {
+    // A real category with nothing live in it: show it as an honest empty
+    // result rather than silently falling back to the whole catalog.
+    categories.push({ name: resolved.name, depth: 0, names: resolved.names });
+  }
 
   return (
     <ProductsContent
-      products={products}
+      products={cards}
       categories={categories}
       initialSearch={first(params.search) ?? ""}
-      initialCategory={initialCategory}
+      initialCategory={resolved?.name ?? null}
     />
   );
 }

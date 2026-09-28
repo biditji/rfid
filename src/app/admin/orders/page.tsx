@@ -19,11 +19,8 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     async function loadOrders() {
       try {
-        const token = localStorage.getItem("rfid_token");
-        if (token) {
-          const data = await fetchAllOrders(token);
-          setOrders(data);
-        }
+        const data = await fetchAllOrders();
+        setOrders(data);
       } catch (error) {
         console.error("Failed to load orders", error);
       } finally {
@@ -36,10 +33,8 @@ export default function AdminOrdersPage() {
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem("rfid_token");
-      if (!token) return;
       
-      await updateOrderStatus(orderId, newStatus, token);
+      await updateOrderStatus(orderId, newStatus);
       
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
       if (selectedOrder && selectedOrder._id === orderId) {

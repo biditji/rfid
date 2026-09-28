@@ -135,7 +135,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           status: String(product.status ?? true),
           sortOrder: String(product.sortOrder ?? 0),
           // Links
-          category: product.category?._id || product.category || "",
+          category: product.category?._id || "",
           // Specifications
           specifications: product.specifications || [],
           // SEO
@@ -224,12 +224,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     }
 
     try {
-      const token = localStorage.getItem("rfid_token") || "";
 
       let imageUrls: string[] = [...existingImages];
 
       if (selectedImages.length > 0) {
-        const uploadedPaths = await uploadImages(selectedImages, token);
+        const uploadedPaths = await uploadImages(selectedImages);
         imageUrls = [...imageUrls, ...uploadedPaths];
       }
 
@@ -272,7 +271,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""),
       };
 
-      await updateProduct(id, payload, token);
+      await updateProduct(id, payload);
       // Flush the storefront cache so the change is visible right away.
       await revalidateProducts();
 

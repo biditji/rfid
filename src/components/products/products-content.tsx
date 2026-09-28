@@ -7,6 +7,7 @@ import { formatCurrency, getStockStatus, cn } from "@/lib/utils";
 import { FadeIn } from "@/components/shared/fade-in";
 import { ProductImage } from "@/components/shared/product-image";
 import type { ProductCard } from "@/lib/products";
+import type { CategoryOption } from "@/lib/categories";
 
 const sortOptions = [
   { label: "Newest", value: "newest" },
@@ -15,8 +16,6 @@ const sortOptions = [
   { label: "Name: A → Z", value: "name-asc" },
 ];
 
-type Category = { id: string; name: string };
-
 export function ProductsContent({
   products = [],
   categories = [],
@@ -24,10 +23,11 @@ export function ProductsContent({
   initialCategory = null,
 }: {
   products?: ProductCard[];
-  categories?: Category[];
+  /** The category tree, flattened in display order (see `categoryOptions`). */
+  categories?: CategoryOption[];
   /** Seeded from ?search= on the server, so the first paint is already filtered. */
   initialSearch?: string;
-  /** Seeded from ?category= on the server (resolved from slug to category name). */
+  /** Seeded from ?category= on the server: the name of the matching option. */
   initialCategory?: string | null;
 }) {
   const [search, setSearch] = useState(initialSearch);
@@ -46,8 +46,11 @@ export function ProductsContent({
       result = result.filter((p) => p.searchText.includes(q));
     }
 
-    if (selectedCategory) {
-      result = result.filter((p) => p.categoryName === selectedCategory);
+    // A parent category matches the products filed under any of its
+    // subcategories, not just ones filed directly under it.
+    const option = categories.find((c) => c.name === selectedCategory);
+    if (option) {
+      result = result.filter((p) => p.categoryName !== null && option.names.includes(p.categoryName));
     }
 
     if (inStockOnly) {
@@ -72,7 +75,7 @@ export function ProductsContent({
     }
 
     return result;
-  }, [products, search, selectedCategory, sortBy, inStockOnly]);
+  }, [products, categories, search, selectedCategory, sortBy, inStockOnly]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -155,11 +158,12 @@ export function ProductsContent({
               </button>
               {categories.map((cat) => (
                 <button
-                  key={cat.id}
+                  key={cat.name}
                   type="button"
                   onClick={() => setSelectedCategory(cat.name)}
                   className={cn(
                     "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
+                    cat.depth > 0 && "pl-5 text-[13px]",
                     selectedCategory === cat.name
                       ? "bg-zinc-100 font-medium text-zinc-900"
                       : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
@@ -167,7 +171,7 @@ export function ProductsContent({
                 >
                   {cat.name}
                   <span className="text-xs text-zinc-400">
-                    {products.filter((p) => p.categoryName === cat.name).length}
+                    {products.filter((p) => p.categoryName !== null && cat.names.includes(p.categoryName)).length}
                   </span>
                 </button>
               ))}

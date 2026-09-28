@@ -164,6 +164,39 @@
   animation: hero-glow-pulse 4s ease-in-out infinite;
 }
 
+/* Hero spotlight slide-in. The slide is keyed on its product, so every change
+   remounts it and replays this; --spotlight-from picks the side it enters from. */
+@keyframes spotlight-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--spotlight-from, 80px)) scale(0.95);
+  }
+}
+
+.animate-spotlight-enter {
+  animation: spotlight-enter 0.45s cubic-bezier(0.22, 0.68, 0.36, 1) both;
+}
+
+/* Hero category pills pop in as they stream in (they arrive after the hero's
+   GSAP intro has already run). Stagger comes from an inline animation-delay. */
+@keyframes pill-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.animate-pill-enter {
+  animation: pill-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spotlight-enter,
+  .animate-pill-enter {
+    animation: none;
+  }
+}
+
 .glass {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);

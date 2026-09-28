@@ -5,6 +5,11 @@ import type { NextConfig } from "next";
 // from here, and a page served over HTTPS blocks any http:// subresource as
 // mixed content (which is why product images/data silently vanished on the
 // deployed site while working on localhost).
+//
+// Mirrors BACKEND_ORIGIN in src/lib/config.ts — keep the two in step. It's
+// derived here rather than imported because Node's native TypeScript loader,
+// which evaluates this file, resolves relative imports differently across
+// Node versions.
 const BACKEND_ORIGIN = (
   process.env.NEXT_PUBLIC_SERVER_URL ||
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ||

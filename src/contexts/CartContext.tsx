@@ -1,12 +1,19 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./AuthContext";
-import { fetchCart, addToCart as apiAddToCart, removeFromCart as apiRemoveFromCart, updateCartQuantity as apiUpdateCartQuantity } from "@/lib/api";
+import {
+  fetchCart,
+  addToCart as apiAddToCart,
+  removeFromCart as apiRemoveFromCart,
+  updateCartQuantity as apiUpdateCartQuantity,
+} from "@/lib/api";
+import type { Product } from "@/types";
 
 type CartItem = {
   _id?: string;
-  product: any; // Assuming populated product object
+  /** Populated by the backend; null if the product has since been deleted. */
+  product: Product | null;
   quantity: number;
 };
 
@@ -28,9 +35,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const cartCount = items.reduce((total, item) => total + item.quantity, 0);
-  const cartTotal = items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
-
   const refreshCart = useCallback(async () => {
     if (!user) {
       setItems([]);
@@ -40,11 +44,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem("rfid_token");
-      if (token) {
-        const cartData = await fetchCart(token);
-        setItems(cartData.items || []);
-      }
+      const cartData = await fetchCart();
+      setItems(cartData.items || []);
     } catch (error) {
       console.error("Failed to refresh cart:", error);
     } finally {
@@ -53,61 +54,100 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading) {
-      refreshCart();
-    }
-  }, [user, authLoading, refreshCart]);
+    // Re-syncs the cart with the backend whenever the signed-in user changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!authLoading) refreshCart();
+  }, [authLoading, refreshCart]);
 
-  const addToCart = async (productId: string, quantity = 1) => {
-    const token = localStorage.getItem("rfid_token");
-    if (!token) {
-      // Typically we might redirect to login here, or save to localStorage for guests.
-      // Since this requires backend, we alert for now.
-      alert("Please log in to add items to your cart.");
-      return;
-    }
-    
-    // Optimistic UI update
-    const existingItem = items.find(i => i.product._id === productId);
-    if (existingItem) {
-      setItems(items.map(i => i.product._id === productId ? { ...i, quantity: i.quantity + quantity } : i));
-    }
+  /**
+   * Apply `optimistic` immediately, then replace it with the server's cart.
+   * If the request fails the optimistic change is rolled back, so the UI never
+   * keeps showing a quantity the backend didn't accept. The error is rethrown
+   * for the caller to report.
+   */
+  const mutateCart = useCallback(
+    async (
+      optimistic: (current: CartItem[]) => CartItem[],
+      send: () => Promise<{ items?: CartItem[] }>
+    ) => {
+      if (!user) return;
 
-    const updatedCart = await apiAddToCart(productId, quantity, token);
-    setItems(updatedCart.items || []);
-  };
+      const previous = items;
+      setItems(optimistic(previous));
 
-  const removeFromCart = async (productId: string) => {
-    const token = localStorage.getItem("rfid_token");
-    if (!token) return;
-
-    // Optimistic
-    setItems(items.filter(i => i.product._id !== productId));
-    
-    const updatedCart = await apiRemoveFromCart(productId, token);
-    setItems(updatedCart.items || []);
-  };
-
-  const updateQuantity = async (productId: string, quantity: number) => {
-    const token = localStorage.getItem("rfid_token");
-    if (!token) return;
-
-    if (quantity <= 0) {
-      return removeFromCart(productId);
-    }
-
-    // Optimistic
-    setItems(items.map(i => i.product._id === productId ? { ...i, quantity } : i));
-
-    const updatedCart = await apiUpdateCartQuantity(productId, quantity, token);
-    setItems(updatedCart.items || []);
-  };
-
-  return (
-    <CartContext.Provider value={{ items, cartCount, cartTotal, loading, addToCart, removeFromCart, updateQuantity, refreshCart }}>
-      {children}
-    </CartContext.Provider>
+      try {
+        const updated = await send();
+        setItems(updated.items || []);
+      } catch (error) {
+        setItems(previous);
+        throw error;
+      }
+    },
+    [items, user]
   );
+
+  const addToCart = useCallback(
+    async (productId: string, quantity = 1) => {
+      if (!user) {
+        // Guest carts need backend support; until then, ask them to sign in.
+        alert("Please log in to add items to your cart.");
+        return;
+      }
+
+      // Only an item already in the cart can be bumped optimistically — a new
+      // one has no product data to render until the server answers.
+      await mutateCart(
+        (current) =>
+          current.map((i) =>
+            i.product?._id === productId ? { ...i, quantity: i.quantity + quantity } : i
+          ),
+        () => apiAddToCart(productId, quantity)
+      );
+    },
+    [mutateCart, user]
+  );
+
+  const removeFromCart = useCallback(
+    (productId: string) =>
+      mutateCart(
+        (current) => current.filter((i) => i.product?._id !== productId),
+        () => apiRemoveFromCart(productId)
+      ),
+    [mutateCart]
+  );
+
+  const updateQuantity = useCallback(
+    (productId: string, quantity: number) => {
+      if (quantity <= 0) return removeFromCart(productId);
+
+      return mutateCart(
+        (current) =>
+          current.map((i) => (i.product?._id === productId ? { ...i, quantity } : i)),
+        () => apiUpdateCartQuantity(productId, quantity)
+      );
+    },
+    [mutateCart, removeFromCart]
+  );
+
+  const value = useMemo(() => {
+    const cartCount = items.reduce((total, item) => total + item.quantity, 0);
+    const cartTotal = items.reduce(
+      (total, item) => total + (item.product?.price ?? 0) * item.quantity,
+      0
+    );
+    return {
+      items,
+      cartCount,
+      cartTotal,
+      loading,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      refreshCart,
+    };
+  }, [items, loading, addToCart, removeFromCart, updateQuantity, refreshCart]);
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {

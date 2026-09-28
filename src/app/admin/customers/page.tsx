@@ -12,11 +12,8 @@ export default function AdminCustomersPage() {
   useEffect(() => {
     async function loadCustomers() {
       try {
-        const token = localStorage.getItem("rfid_token");
-        if (token) {
-          const data = await fetchCustomers(token);
-          setCustomers(data);
-        }
+        const data = await fetchCustomers();
+        setCustomers(data);
       } catch (error) {
         console.error("Failed to load customers", error);
       } finally {
@@ -28,9 +25,7 @@ export default function AdminCustomersPage() {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      const token = localStorage.getItem("rfid_token");
-      if (!token) return;
-      await updateUserRole(userId, newRole, token);
+      await updateUserRole(userId, newRole);
       
       setCustomers((prev) =>
         prev.map((c) => (c._id === userId ? { ...c, role: newRole } : c))

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { ApiError } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,9 +16,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
-  
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,27 +24,12 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        login(data.token, {
-          _id: data._id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-        });
-        router.push("/");
-      } else {
-        setError(data.message || "Registration failed");
-      }
+      await signUp(name, email, password);
+      router.push("/");
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      // An ApiError carries the backend's own message ("User already
+      // exists"); anything else is a network failure.
+      setError(err instanceof ApiError ? err.message : "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

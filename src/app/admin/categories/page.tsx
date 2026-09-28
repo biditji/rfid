@@ -91,8 +91,7 @@ export default function AdminCategoriesPage() {
     setError("");
     setSuccess("");
     try {
-      const token = localStorage.getItem("rfid_token") || "";
-      await deleteCategory(id, token);
+      await deleteCategory(id);
       // Flush the storefront cache so the change is visible right away.
       await revalidateCategories();
       setSuccess("Category deleted successfully.");
@@ -109,8 +108,7 @@ export default function AdminCategoriesPage() {
     setError("");
     setSuccess("");
     try {
-      const token = localStorage.getItem("rfid_token") || "";
-      await deleteCategoriesBulk(selectedIds, token);
+      await deleteCategoriesBulk(selectedIds);
       // Flush the storefront cache so the change is visible right away.
       await revalidateCategories();
       setSuccess(`${selectedIds.length} category(ies) deleted.`);

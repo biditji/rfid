@@ -1,39 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Tag,
-  Cpu,
-  Antenna,
-  StickyNote,
-  Package,
-  Wrench,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { getCategories } from "@/lib/products";
 import { FadeIn } from "@/components/shared/fade-in";
+import { categoryColors, categoryIcon } from "@/components/shared/category-visuals";
+import { categoryParam } from "@/lib/categories";
 
 export const metadata: Metadata = {
   title: "Categories",
   description:
     "Browse RFID product categories — tags, readers, antennas, labels, starter kits, and accessories.",
-};
-
-const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  "RFID Tags": Tag,
-  "RFID Readers": Cpu,
-  "RFID Antennas": Antenna,
-  "RFID Labels": StickyNote,
-  "RFID Kits": Package,
-  "Accessories": Wrench,
-};
-
-const categoryImages: Record<string, string> = {
-  "RFID Tags": "bg-blue-50",
-  "RFID Readers": "bg-amber-50",
-  "RFID Antennas": "bg-emerald-50",
-  "RFID Labels": "bg-violet-50",
-  "RFID Kits": "bg-rose-50",
-  "Accessories": "bg-zinc-100",
 };
 
 export const revalidate = 600;
@@ -56,14 +32,14 @@ export default async function CategoriesPage() {
       </FadeIn>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((cat: any, idx: number) => {
-          const Icon = categoryIcons[cat.name] || Package;
-          const bgClass = categoryImages[cat.name] || "bg-zinc-100";
+        {categories.map((cat, idx) => {
+          const Icon = categoryIcon(cat.name);
+          const bgClass = categoryColors(idx).tint;
 
           return (
             <FadeIn key={cat._id} delay={idx * 0.06}>
               <Link
-                href={`/products?category=${cat.slug || cat._id}`}
+                href={`/products?category=${encodeURIComponent(categoryParam(cat))}`}
                 className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:border-zinc-300 hover:shadow-sm"
               >
                 <div

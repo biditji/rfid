@@ -73,7 +73,7 @@ export default function EditCategoryPage({ params }: { params: Promise<{ id: str
         setFormData({
           name: category.name || "",
           description: category.description || "",
-          parent: category.parent?._id || category.parent || "",
+          parent: category.parent?._id || "",
           sortOrder: String(category.sortOrder ?? 0),
           status: String(category.status ?? true),
           slug: category.slug || "",
@@ -111,11 +111,10 @@ export default function EditCategoryPage({ params }: { params: Promise<{ id: str
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("rfid_token") || "";
 
       let imageUrl = existingImage || "";
       if (selectedImage) {
-        imageUrl = await uploadImage(selectedImage, token);
+        imageUrl = await uploadImage(selectedImage);
       }
 
       const payload = {
@@ -131,7 +130,7 @@ export default function EditCategoryPage({ params }: { params: Promise<{ id: str
         image: imageUrl || undefined,
       };
 
-      await updateCategory(id, payload, token);
+      await updateCategory(id, payload);
       // Flush the storefront cache so the change is visible right away.
       await revalidateCategories();
 

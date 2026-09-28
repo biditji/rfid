@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { BACKEND_ORIGIN } from "./config"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -10,6 +11,21 @@ export function formatCurrency(amount: number): string {
     style: "currency",
     currency: "INR",
   }).format(amount);
+}
+
+/** Short rupee amounts for chart axes, e.g. "₹52.3K". */
+export function formatCurrencyCompact(amount: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(amount);
+}
+
+/** "+12.5%" / "-3.0%" for a percentage change. */
+export function formatPercentChange(change: number): string {
+  return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
 }
 
 export function formatNumber(num: number): string {
@@ -65,11 +81,5 @@ export function stripHtml(html: string): string {
 export function getServerUrl(path: string): string {
   if (!path) return "/placeholder.png";
   if (path.startsWith('http')) return path;
-  // Falls back to the HTTPS host, never plain http: an http:// image URL on an
-  // HTTPS page is blocked by the browser as mixed content.
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SERVER_URL ||
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') ||
-    'https://backend.indiarfidshop.com';
-  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  return `${BACKEND_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}`;
 }

@@ -1,9 +1,11 @@
+import { SITE_URL } from "./config";
+
 export const SITE_CONFIG = {
   name: "Virtualsphere",
   tagline: "Enterprise RFID Solutions",
   description:
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
-  url: "https://rfidhub.com",
+  url: SITE_URL,
   email: "info@Virtualspheretechnologies.in",
   phone: "+91-7050506400",
   address: {

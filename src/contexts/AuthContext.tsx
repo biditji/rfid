@@ -1,85 +1,93 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+import {
+  clearLegacyToken,
+  fetchSessionUser,
+  signIn as apiSignIn,
+  signOut,
+  signUp as apiSignUp,
+} from "@/lib/auth-client";
+import type { User } from "@/types";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (token: string, userData: User) => void;
-  logout: () => void;
+  /** Throws an ApiError carrying the backend's message on bad credentials. */
+  signIn: (email: string, password: string) => Promise<User>;
+  signUp: (name: string, email: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  login: () => {},
-  logout: () => {},
+  signIn: async () => {
+    throw new Error("AuthProvider missing");
+  },
+  signUp: async () => {
+    throw new Error("AuthProvider missing");
+  },
+  logout: async () => {},
   checkAuth: async () => {},
 });
 
+/**
+ * Client-side view of the session. The session itself is an httpOnly cookie
+ * managed by the /api/auth routes — this only mirrors who is signed in so the
+ * UI can react. Protected pages are gated server-side by `proxy.ts`.
+ */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const login = (token: string, userData: User) => {
-    localStorage.setItem("rfid_token", token);
-    setUser(userData);
-  };
-
-  const logout = () => {
-    localStorage.removeItem("rfid_token");
-    setUser(null);
-    router.push("/login");
-  };
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
-      const token = localStorage.getItem("rfid_token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(`${API_URL}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
-      } else {
-        localStorage.removeItem("rfid_token");
-      }
+      setUser(await fetchSessionUser());
     } catch (error) {
       console.error("Auth check failed:", error);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    checkAuth();
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout, checkAuth }}>
-      {children}
-    </AuthContext.Provider>
+  useEffect(() => {
+    clearLegacyToken();
+    // Syncs with the session cookie on mount. Every state update in
+    // checkAuth happens after its fetch resolves, not during the effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkAuth();
+  }, [checkAuth]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const signedIn = await apiSignIn(email, password);
+    setUser(signedIn);
+    return signedIn;
+  }, []);
+
+  const signUp = useCallback(async (name: string, email: string, password: string) => {
+    const created = await apiSignUp(name, email, password);
+    setUser(created);
+    return created;
+  }, []);
+
+  const logout = useCallback(async () => {
+    await signOut();
+    setUser(null);
+    router.push("/login");
+  }, [router]);
+
+  // Memoized so the header and every other consumer re-render only when the
+  // session actually changes, not whenever this provider does.
+  const value = useMemo(
+    () => ({ user, loading, signIn, signUp, logout, checkAuth }),
+    [user, loading, signIn, signUp, logout, checkAuth]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

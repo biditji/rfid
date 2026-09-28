@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { SITE_URL } from "@/lib/config";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -17,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://rfidhub.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Virtualsphere — Enterprise RFID Solutions",
     template: "%s | Virtualsphere",

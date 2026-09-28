@@ -1,8 +1,10 @@
-import { Metadata, ResolvingMetadata } from "next";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getProducts } from "@/lib/products";
-import { formatCurrency, getStockStatus, cn, getServerUrl } from "@/lib/utils";
-import { ShoppingCart, Package, ShieldCheck, Truck } from "lucide-react";
+import { getProductBySlug, getProductIndex } from "@/lib/products";
+import { sanitizeProductHtml } from "@/lib/sanitize";
+import { formatCurrency, getStockStatus, cn, getServerUrl, stripHtml, truncate } from "@/lib/utils";
+import { ShieldCheck, Truck } from "lucide-react";
 import { AddToCartButton } from "@/components/products/add-to-cart-button";
 import { ImageGallery } from "@/components/products/image-gallery";
 
@@ -19,18 +21,12 @@ export const revalidate = 300;
  * Slugs not listed here are still rendered on demand and then cached.
  */
 export async function generateStaticParams() {
-  const products = await getProducts();
-  if (!Array.isArray(products)) return [];
-  return products
-    .filter((p: any) => p?.slug)
-    .map((p: any) => ({ slug: String(p.slug) }));
+  const products = await getProductIndex();
+  return products.map(({ slug }) => ({ slug }));
 }
 
 // Generate SEO Metadata dynamically based on the product
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
 
@@ -38,9 +34,12 @@ export async function generateMetadata(
     return { title: "Product Not Found | Virtualsphere" };
   }
 
-  // Fallback to name/description if custom SEO fields are empty
+  // Fallback to name/description if custom SEO fields are empty. The
+  // description is rich-text HTML, so strip it — otherwise search results show
+  // raw "<p><strong>…" markup as the snippet.
   const title = product.metaTitle || `${product.name} | Virtualsphere`;
-  const description = product.metaDescription || product.description?.substring(0, 160) || "";
+  const description =
+    product.metaDescription || truncate(stripHtml(product.description ?? ""), 160);
 
   return {
     title,
@@ -80,9 +79,9 @@ export default async function ProductPage({ params }: Props) {
       <div className="bg-white border-b border-zinc-200">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <nav className="flex text-sm font-medium text-zinc-500">
-            <a href="/" className="hover:text-zinc-900 transition-colors">Home</a>
+            <Link href="/" className="hover:text-zinc-900 transition-colors">Home</Link>
             <span className="mx-2">/</span>
-            <a href="/products" className="hover:text-zinc-900 transition-colors">Products</a>
+            <Link href="/products" className="hover:text-zinc-900 transition-colors">Products</Link>
             <span className="mx-2">/</span>
             {product.category && (
               <>
@@ -125,7 +124,7 @@ export default async function ProductPage({ params }: Props) {
               <h3 className="sr-only">Description</h3>
               <div 
                 className="prose prose-zinc max-w-none text-zinc-700 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-zinc-200 prose-th:bg-zinc-50 prose-th:p-3 prose-th:text-left prose-td:border prose-td:border-zinc-200 prose-td:p-3 prose-img:rounded-lg prose-img:border prose-img:border-zinc-200"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                dangerouslySetInnerHTML={{ __html: sanitizeProductHtml(product.description) }}
               />
             </div>
 
@@ -174,7 +173,7 @@ export default async function ProductPage({ params }: Props) {
                     <dd className="text-zinc-900 mt-1">{product.mpn}</dd>
                   </div>
                 )}
-                {product.weight > 0 && (
+                {(product.weight ?? 0) > 0 && (
                   <div className="flex flex-col border-b border-zinc-100 pb-2">
                     <dt className="text-zinc-500 font-medium">Weight</dt>
                     <dd className="text-zinc-900 mt-1">{product.weight} {product.weightClass}</dd>
@@ -206,7 +205,7 @@ export default async function ProductPage({ params }: Props) {
                     <div className="overflow-hidden rounded-lg border border-zinc-200">
                       <table className="w-full border-collapse text-sm">
                         <tbody>
-                          {product.specifications.map((spec: any, idx: number) => (
+                          {product.specifications.map((spec, idx) => (
                             <tr key={idx} className="border-b border-zinc-200 last:border-0">
                               <td className="py-3 px-4 font-medium text-zinc-700 bg-zinc-100/80 w-1/3 border-r border-zinc-200 align-top">
                                 {spec.name}

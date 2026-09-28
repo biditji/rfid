@@ -98,8 +98,7 @@ export default function AdminProductsPage() {
     setError("");
     setSuccess("");
     try {
-      const token = localStorage.getItem("rfid_token") || "";
-      await deleteProduct(id, token);
+      await deleteProduct(id);
       // Flush the storefront cache so the change is visible right away.
       await revalidateProducts();
       setSuccess("Product deleted successfully.");
@@ -116,8 +115,7 @@ export default function AdminProductsPage() {
     setError("");
     setSuccess("");
     try {
-      const token = localStorage.getItem("rfid_token") || "";
-      await deleteProductsBulk(selectedIds, token);
+      await deleteProductsBulk(selectedIds);
       // Flush the storefront cache so the change is visible right away.
       await revalidateProducts();
       setSuccess(`${selectedIds.length} product(s) deleted.`);

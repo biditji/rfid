@@ -23,11 +23,8 @@ export default function ProfilePage() {
 
     async function loadOrders() {
       try {
-        const token = localStorage.getItem("rfid_token");
-        if (token) {
-          const data = await fetchMyOrders(token);
-          setOrders(data);
-        }
+        const data = await fetchMyOrders();
+        setOrders(data);
       } catch (error) {
         console.error("Failed to load orders", error);
       } finally {

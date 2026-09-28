@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { ApiError } from "@/lib/api";
+import { redirectFromLocation } from "@/lib/redirect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,9 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
-  
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,27 +24,13 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        login(data.token, {
-          _id: data._id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-        });
-        router.push("/");
-      } else {
-        setError(data.message || "Login failed");
-      }
+      await signIn(email, password);
+      // Back to the page that sent them here (e.g. /admin), if any.
+      router.push(redirectFromLocation());
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      // An ApiError carries the backend's own message ("Invalid email or
+      // password"); anything else is a network failure.
+      setError(err instanceof ApiError ? err.message : "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
