@@ -13,7 +13,12 @@ async function postAuth(path: string, body: unknown, fallback: string): Promise<
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => null);
-  if (!res.ok || !data?.user) throw new ApiError(data?.message || fallback, res.status);
+  if (!res.ok || !data?.user) {
+    // A gateway timeout arrives as an HTML page, not our JSON, so `data` is
+    // null; say the server was slow rather than a bare "Login failed".
+    const message = data?.message || (res.status >= 500 ? `${fallback}: the server took too long to respond. Please try again.` : fallback);
+    throw new ApiError(message, res.status);
+  }
   return data.user as User;
 }
 

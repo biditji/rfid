@@ -7,7 +7,18 @@ export const SITE_CONFIG = {
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
   url: SITE_URL,
   email: "info@Virtualspheretechnologies.in",
+  /** The office's mobile line; it is also the number people ring and message. */
   phone: "+91-7050506400",
+  /**
+   * WhatsApp number, international format. ⚠ REVIEW: assumed to be the same
+   * mobile as `phone`; change it here if WhatsApp runs on a different number.
+   */
+  whatsapp: "+91-7050506400",
+  /**
+   * Where customers ask for reader SDKs, drivers and datasheets.
+   * ⚠ REVIEW: the domain is assumed to match the company email above.
+   */
+  sdkEmail: "resources.info@virtualspheretechnologies.in",
   address: {
     street: "3rd Floor, D-318, D Block, Sector 10",
     city: "Noida",
@@ -25,6 +36,18 @@ export const SITE_CONFIG = {
     github: "https://github.com/rfidhub",
   },
 } as const;
+
+/** A wa.me chat link to the shop's WhatsApp number, optionally with a first message filled in. */
+export function whatsappUrl(message?: string): string {
+  const digits = SITE_CONFIG.whatsapp.replace(/\D/g, "");
+  return `https://wa.me/${digits}${message ? `?text=${encodeURIComponent(message)}` : ""}`;
+}
+
+/** A mailto: link to the SDK/resources mailbox with the request's subject filled in. */
+export function sdkRequestUrl(subject: string, body?: string): string {
+  const query = `subject=${encodeURIComponent(subject)}${body ? `&body=${encodeURIComponent(body)}` : ""}`;
+  return `mailto:${SITE_CONFIG.sdkEmail}?${query}`;
+}
 
 export const NAV_ITEMS = [
   { label: "Products", href: "/products" },

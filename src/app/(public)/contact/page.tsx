@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { SITE_CONFIG } from "@/lib/constants";
+import { SITE_CONFIG, sdkRequestUrl, whatsappUrl } from "@/lib/constants";
 import { SUPPORT_HOURS } from "@/content/claims";
 import { PageContainer } from "@/components/shared/page-container";
+import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { SectionHeader } from "@/components/shared/section-header";
 import { ContactForm } from "@/components/contact/contact-form";
 
@@ -53,15 +54,34 @@ export default async function ContactPage({ searchParams }: Props) {
                   </a>
                 </address>
               </Row>
-              <Row label="Phone">
+              <Row label="Mobile">
                 <a href={`tel:${SITE_CONFIG.phone}`} className="tabular-nums hover:underline">
                   {SITE_CONFIG.phone}
+                </a>
+              </Row>
+              <Row label="WhatsApp">
+                <a
+                  href={whatsappUrl("Hi Virtualsphere, I have a question about your RFID products.")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 hover:underline"
+                >
+                  <WhatsAppIcon className="size-4" />
+                  <span className="tabular-nums">{SITE_CONFIG.whatsapp}</span>
                 </a>
               </Row>
               <Row label="Email">
                 <a href={`mailto:${SITE_CONFIG.email}`} className="break-all hover:underline">
                   {SITE_CONFIG.email}
                 </a>
+              </Row>
+              <Row label="Reader SDK">
+                <a href={sdkRequestUrl("Reader SDK request")} className="break-all hover:underline">
+                  {SITE_CONFIG.sdkEmail}
+                </a>
+                <p className="mt-1 text-muted-foreground">
+                  Email the reader model and we&apos;ll send the SDK, drivers and datasheet.
+                </p>
               </Row>
               {SUPPORT_HOURS.map((slot) => (
                 <Row key={slot.days} label={slot.days}>

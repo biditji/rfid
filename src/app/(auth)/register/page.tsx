@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
+import { useSlowHint } from "@/lib/use-slow-hint";
+import { warmBackend } from "@/lib/warm-backend";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +19,10 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { signUp } = useAuth();
+  const slow = useSlowHint(isLoading);
+
+  // Start the backend waking up while the visitor fills in the form.
+  useEffect(warmBackend, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +97,9 @@ export default function RegisterPage() {
         <Button type="submit" size="lg" className="w-full" loading={isLoading} loadingText="Creating account…">
           Create account
         </Button>
+        <p aria-live="polite" className="min-h-5 text-small text-muted-foreground">
+          {slow && "Still creating your account — the server is waking up, which can take up to a minute."}
+        </p>
       </form>
     </>
   );

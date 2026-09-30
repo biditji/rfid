@@ -441,8 +441,18 @@ export const updateCartQuantity = (productId: string, quantity: number) =>
     errorMessage: 'Failed to update cart quantity',
   });
 
+/** What `POST /orders` answers with once the Razorpay order exists. */
+export type CreatedOrder = {
+  order: { _id: string; totalPrice: number };
+  razorpayOrderId: string;
+  /** Razorpay's public key id, from the backend's own configuration. Older backends omit it. */
+  keyId?: string;
+  /** The order amount in paise, as Razorpay holds it. Older backends omit it. */
+  amount?: number;
+};
+
 export const createOrder = (shippingAddress: string, phoneNumber: string) =>
-  request<any>('/orders', {
+  request<CreatedOrder>('/orders', {
     method: 'POST',
     body: { shippingAddress, phoneNumber },
     errorMessage: 'Failed to create order',

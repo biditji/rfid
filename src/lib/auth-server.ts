@@ -17,13 +17,20 @@ export async function sessionResponse(auth: AuthResponse): Promise<NextResponse>
   return response;
 }
 
-/** The backend's rejection ("Invalid credentials") passed through, or a 502. */
-export function authErrorResponse(error: unknown, fallback: string): NextResponse {
+/**
+ * The backend's rejection ("Invalid credentials") passed through, or a 502.
+ * `action` names what was attempted ("sign-in", "registration") for the log
+ * and for the message a visitor sees when the failure isn't theirs to fix.
+ */
+export function authErrorResponse(error: unknown, action: string): NextResponse {
   if (error instanceof ApiError && error.status && error.status < 500) {
     return NextResponse.json({ message: error.message }, { status: error.status });
   }
-  console.error(`[auth] ${fallback}:`, error);
-  return NextResponse.json({ message: fallback }, { status: 502 });
+  console.error(`[auth] ${action} failed:`, error);
+  return NextResponse.json(
+    { message: `We couldn't complete ${action} right now. Please try again in a moment.` },
+    { status: 502 }
+  );
 }
 
 export const forbiddenResponse = () =>

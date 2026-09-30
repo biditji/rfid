@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, ShieldCheck, Phone } from "lucide-react";
+import { ChevronRight, Download, ShieldCheck, Phone } from "lucide-react";
 import { getProductBySlug, getProductIndex, toProductSummary } from "@/lib/products";
 import { sanitizeProductHtml } from "@/lib/sanitize";
 import { formatCurrency, getServerUrl, slugify, stripHtml, truncate } from "@/lib/utils";
-import { GST_NOTE, SITE_CONFIG } from "@/lib/constants";
+import { GST_NOTE, SITE_CONFIG, sdkRequestUrl, whatsappUrl } from "@/lib/constants";
 import type { Product } from "@/types";
 import { ImageGallery } from "@/components/products/image-gallery";
 import { PurchaseForm } from "@/components/products/purchase-form";
@@ -175,8 +175,32 @@ export default async function ProductPage({ params }: Props) {
                 <a href={`tel:${SITE_CONFIG.phone}`} className="text-foreground tabular-nums hover:underline">
                   {SITE_CONFIG.phone}
                 </a>
+                {" · "}
+                <a
+                  href={whatsappUrl(`Hi Virtualsphere, I have a question about ${product.name}.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground hover:underline"
+                >
+                  WhatsApp
+                </a>
               </span>
             </li>
+            {/* Readers ship with an SDK; antennas don't have one to request. */}
+            {/reader/i.test(product.category?.name ?? "") && (
+              <li className="flex items-center gap-3">
+                <Download aria-hidden className="size-4 shrink-0 text-foreground" />
+                <span>
+                  Need the SDK or drivers?{" "}
+                  <a
+                    href={sdkRequestUrl(`SDK request: ${product.name}${summary.sku ? ` (${summary.sku})` : ""}`)}
+                    className="text-foreground hover:underline"
+                  >
+                    Request the reader SDK
+                  </a>
+                </span>
+              </li>
+            )}
           </ul>
         </div>
       </PageContainer>

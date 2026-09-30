@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { SITE_CONFIG, NAV_ITEMS, PRODUCT_CATEGORIES } from "@/lib/constants";
+import { SITE_CONFIG, NAV_ITEMS, PRODUCT_CATEGORIES, sdkRequestUrl, whatsappUrl } from "@/lib/constants";
 import { slugify } from "@/lib/utils";
 import { PageContainer } from "@/components/shared/page-container";
+import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { FOOTER_TRUST_LINE } from "@/content/claims";
 
 const linkClass = "text-small text-muted-foreground transition-colors hover:text-foreground";
@@ -59,12 +60,32 @@ export function Footer() {
               </p>
               <p>
                 <a href={`tel:${SITE_CONFIG.phone}`} className={`${linkClass} tabular-nums`}>
+                  <span className="sr-only">Mobile: </span>
                   {SITE_CONFIG.phone}
+                </a>
+              </p>
+              <p>
+                <a
+                  href={whatsappUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${linkClass} inline-flex items-center gap-2`}
+                >
+                  <WhatsAppIcon className="size-4" />
+                  Chat on WhatsApp
                 </a>
               </p>
               <p>
                 <a href={`mailto:${SITE_CONFIG.email}`} className={`${linkClass} break-all`}>
                   {SITE_CONFIG.email}
+                </a>
+              </p>
+              <p>
+                <span className="block text-meta text-muted-foreground uppercase">Reader SDK &amp; resources</span>
+                <a href={sdkRequestUrl("Reader SDK request")} className={linkClass}>
+                  {/* A long address needs somewhere sensible to wrap: after the @, not mid-word. */}
+                  {SITE_CONFIG.sdkEmail.split("@")[0]}@<wbr />
+                  {SITE_CONFIG.sdkEmail.split("@")[1]}
                 </a>
               </p>
             </address>

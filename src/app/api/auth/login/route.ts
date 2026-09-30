@@ -20,6 +20,6 @@ export async function POST(request: Request) {
   try {
     return await sessionResponse(await login(credentials.email, credentials.password));
   } catch (error) {
-    return authErrorResponse(error, "Login failed");
+    return authErrorResponse(error, "sign-in");
   }
 }

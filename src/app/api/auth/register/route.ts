@@ -18,6 +18,6 @@ export async function POST(request: Request) {
   try {
     return await sessionResponse(await register(details.name, details.email, details.password));
   } catch (error) {
-    return authErrorResponse(error, "Registration failed");
+    return authErrorResponse(error, "registration");
   }
 }

@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Trash2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { createOrder, verifyRazorpayPayment } from "@/lib/api";
-import { formatCurrency } from "@/lib/utils";
+import { ApiError, createOrder, verifyRazorpayPayment } from "@/lib/api";
+import { RAZORPAY_KEY_ID } from "@/lib/config";
+import { checkoutErrorMessage, loadRazorpay, openCheckout } from "@/lib/razorpay";
+import { useSlowHint } from "@/lib/use-slow-hint";
+import { cn, formatCurrency } from "@/lib/utils";
 import { GST_NOTE } from "@/lib/constants";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,78 +37,92 @@ export default function CartPage() {
   const [itemError, setItemError] = useState("");
   const ids = { phone: useId(), address: useId() };
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
+  // True while the order is being prepared, i.e. until the payment window opens
+  // or something fails. Drives the "still working" hint.
+  const [preparing, setPreparing] = useState(false);
+  const checkoutSlow = useSlowHint(preparing);
 
   const handleCheckout = async () => {
+    setCheckoutError("");
+    if (!shippingAddress.trim()) {
+      setCheckoutError("Please enter your shipping address.");
+      return;
+    }
+    if (!phoneNumber.trim() || phoneNumber.replace(/\D/g, "").length < 10) {
+      setCheckoutError("Please enter a valid phone number.");
+      return;
+    }
+
+    if (!user) return router.push("/login?redirect=/cart");
+
+    setCheckoutLoading(true);
+    setPreparing(true);
     try {
-      setCheckoutError("");
-      if (!shippingAddress.trim()) {
-        setCheckoutError("Please enter your shipping address.");
+      const created = await createOrder(shippingAddress, phoneNumber);
+
+      // The backend names the key its own secret pairs with, so the two can't
+      // drift apart; the build-time key is only for backends that don't send one.
+      const keyId = created.keyId || RAZORPAY_KEY_ID;
+      if (!keyId) {
+        console.error("Checkout: no Razorpay key from the backend and NEXT_PUBLIC_RAZORPAY_KEY_ID is unset");
+        setCheckoutError(checkoutErrorMessage(new ApiError("No Razorpay key", 503)));
+        setCheckoutLoading(false);
+        setPreparing(false);
         return;
       }
-      if (!phoneNumber.trim() || phoneNumber.replace(/\D/g, "").length < 10) {
-        setCheckoutError("Please enter a valid phone number.");
-        return;
-      }
 
-      if (!user) return router.push("/login?redirect=/cart");
-
-      setCheckoutLoading(true);
-      const { razorpayOrderId } = await createOrder(shippingAddress, phoneNumber);
-
-      const res = await loadRazorpayScript();
-      if (!res) {
+      if (!(await loadRazorpay())) {
         setCheckoutError("The payment window couldn't load. Check your connection and try again.");
         setCheckoutLoading(false);
+        setPreparing(false);
         return;
       }
 
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
-        amount: Math.round(cartTotal * 100),
-        currency: "INR",
-        name: "Virtualsphere",
-        description: "RFID Order Payment",
-        order_id: razorpayOrderId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Razorpay's untyped callback payload
-        handler: async function (response: any) {
-          try {
-            await verifyRazorpayPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            await refreshCart();
-            router.push("/orders");
-          } catch (verifyError) {
-            console.error("Payment verification failed", verifyError);
-            setCheckoutError("We couldn't verify your payment. Please contact support before trying again.");
-            setCheckoutLoading(false);
-          }
+      let paid = false;
+      openCheckout(
+        {
+          keyId,
+          orderId: created.razorpayOrderId,
+          // Razorpay holds the amount on its order; the same figure keeps the
+          // window from disagreeing with it if a price changed since the cart loaded.
+          amountPaise: created.amount ?? Math.round((created.order?.totalPrice ?? cartTotal) * 100),
+          name: "Virtualsphere",
+          description: "RFID Order Payment",
+          themeColor: RAZORPAY_THEME,
+          prefill: { name: user.name, email: user.email, contact: phoneNumber.trim() },
         },
-        theme: { color: RAZORPAY_THEME },
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Razorpay SDK attaches itself to window untyped
-      const paymentObject = new (window as any).Razorpay(options);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      paymentObject.on("payment.failed", function (response: any) {
-        setCheckoutError(`Payment failed: ${response.error.description}`);
-        setCheckoutLoading(false);
-      });
-      paymentObject.open();
+        {
+          onPaid: async (payment) => {
+            paid = true;
+            setCheckoutError("");
+            try {
+              await verifyRazorpayPayment(payment);
+              await refreshCart();
+              router.push("/orders");
+            } catch (verifyError) {
+              console.error("Payment verification failed", verifyError);
+              setCheckoutError("We couldn't verify your payment. Please contact support before trying again.");
+              setCheckoutLoading(false);
+            }
+          },
+          // Closing the window used to leave the button stuck on "Processing…".
+          // Once a payment has gone through, though, verification is still
+          // running and the button must stay busy.
+          onDismiss: () => {
+            if (!paid) setCheckoutLoading(false);
+          },
+          onFailed: (reason) => {
+            const sentence = reason.trim().replace(/\.?$/, ".");
+            setCheckoutError(`Payment failed: ${sentence} You can try again in the payment window.`);
+          },
+        }
+      );
+      setPreparing(false);
     } catch (error) {
       console.error("Checkout failed:", error);
-      setCheckoutError("Checkout failed. Please try again.");
+      setCheckoutError(checkoutErrorMessage(error));
       setCheckoutLoading(false);
+      setPreparing(false);
     }
   };
 
@@ -267,8 +284,14 @@ export default function CartPage() {
                   />
                 </div>
 
-                <p aria-live="polite" className="min-h-5 text-small text-danger">
-                  {checkoutError}
+                <p
+                  aria-live="polite"
+                  className={cn("min-h-5 text-small", checkoutError ? "text-danger" : "text-muted-foreground")}
+                >
+                  {checkoutError ||
+                    (checkoutSlow
+                      ? "Still working — the payment service can take up to a minute to respond the first time."
+                      : "")}
                 </p>
 
                 <Button

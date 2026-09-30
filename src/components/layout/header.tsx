@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Search, ShoppingCart, User as UserIcon, LogOut, ArrowRight } from "lucide-react";
+import { Menu, X, Search, ShoppingCart, User as UserIcon, LogOut, ArrowRight, Phone } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,8 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/shared/page-container";
-import { NAV_ITEMS } from "@/lib/constants";
+import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
+import { NAV_ITEMS, SITE_CONFIG, whatsappUrl } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -76,6 +77,14 @@ export function Header() {
           </ButtonLink>
           <AccountControl />
           <CartLink />
+          <a
+            href={`tel:${SITE_CONFIG.phone}`}
+            className="ml-2 hidden shrink-0 items-center gap-2 text-small font-medium whitespace-nowrap text-muted-foreground tabular-nums transition-colors hover:text-foreground min-[1340px]:inline-flex"
+          >
+            <Phone aria-hidden className="size-4" />
+            <span className="sr-only">Call </span>
+            {SITE_CONFIG.phone}
+          </a>
           <ButtonLink href="/contact" size="md" className="ml-2 hidden lg:inline-flex">
             Request a quote
           </ButtonLink>
@@ -127,6 +136,21 @@ export function Header() {
                 })}
               </ul>
             </nav>
+            <div className="grid grid-cols-2 gap-3">
+              <ButtonLink href={`tel:${SITE_CONFIG.phone}`} variant="outline" size="lg" startIcon={<Phone />}>
+                Call us
+              </ButtonLink>
+              <ButtonLink
+                href={whatsappUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="outline"
+                size="lg"
+                startIcon={<WhatsAppIcon />}
+              >
+                WhatsApp
+              </ButtonLink>
+            </div>
             <ButtonLink href="/contact" size="lg" className="w-full">
               Request a quote
             </ButtonLink>

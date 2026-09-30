@@ -1,5 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { WhatsAppButton } from "@/components/layout/whatsapp-button";
+import { TawkTo } from "@/components/layout/tawk-to";
 
 export default function PublicLayout({
   children,
@@ -11,6 +13,8 @@ export default function PublicLayout({
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      <WhatsAppButton />
+      <TawkTo />
     </>
   );
 }
