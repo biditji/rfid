@@ -45,9 +45,28 @@ describe("curateHome hero slides", () => {
     expect(heroSlides.length).toBeGreaterThan(1);
   });
 
-  it("honours the featured hero", () => {
-    const { heroSlides } = curateHome(catalog(), { hero: "antenna" });
+  it("shows the pinned slides in the order given, even from one category", () => {
+    const { heroSlides } = curateHome(catalog(), {
+      heroSlides: ["antenna", "handheld-2", "handheld", "desktop", "tags"],
+    });
+    expect(heroSlides.map((p) => p.slug)).toEqual(["antenna", "handheld-2", "handheld", "desktop", "tags"]);
+  });
+
+  it("fills slots left by pinned slides that aren't live or in stock", () => {
+    const cards = catalog();
+    cards.push(card({ categoryName: "Sold Out Reader", stock: 0, slug: "sold-out" }));
+    const { heroSlides } = curateHome(cards, { heroSlides: ["antenna", "sold-out", "missing", "antenna"] });
+
     expect(heroSlides[0].slug).toBe("antenna");
+    expect(heroSlides.map((p) => p.slug)).not.toContain("sold-out");
+    expect(new Set(heroSlides.map((p) => p._id)).size).toBe(heroSlides.length);
+    expect(heroSlides.length).toBeGreaterThan(1);
+  });
+
+  it("never pins more than the slide limit", () => {
+    const cards = catalog();
+    const { heroSlides } = curateHome(cards, { heroSlides: cards.map((p) => p.slug) });
+    expect(heroSlides).toHaveLength(HERO_SLIDE_LIMIT);
   });
 
   it("never repeats a product from the showcase or the rail", () => {

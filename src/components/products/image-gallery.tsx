@@ -8,7 +8,7 @@ import { useRotation } from "@/lib/use-rotation";
 import { cn } from "@/lib/utils";
 
 /** How long each photo holds the plate before the next fades in. */
-const PHOTO_SECONDS = 5;
+const PHOTO_SECONDS = 2;
 
 /**
  * Product photos on the shared plate: one large view and, when there's more

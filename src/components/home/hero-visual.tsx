@@ -12,7 +12,7 @@ import { useRotation } from "@/lib/use-rotation";
 import { cn, formatCurrency } from "@/lib/utils";
 
 /** How long each product holds the plate before the next fades in. */
-const SLIDE_SECONDS = 6;
+const SLIDE_SECONDS = 2;
 
 /**
  * The hero's products, presented like spec plates: the photo on the

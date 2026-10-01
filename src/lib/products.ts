@@ -198,7 +198,8 @@ export async function getProductIndex(): Promise<{ slug: string; updatedAt?: str
  * takes one product per category so it reads as a range rather than four
  * variants of one reader.
  *
- * The hero is a rotation (`heroSlides`): the flagship first, then one product
+ * The hero is a rotation (`heroSlides`): the pinned products in the order
+ * given, then — for any slots they leave empty — the flagship and one product
  * from each other category, so the plate shows the range — a reader, an
  * antenna, a tag — rather than one product. Slides come from what the showcase
  * and rail don't use, so no product appears twice on the page.
@@ -208,7 +209,7 @@ export const HERO_SLIDE_LIMIT = 5;
 export function curateHome(
   cards: ProductSummary[],
   /** Merchandising picks by slug; any that aren't live and in stock are filled automatically. */
-  featured: { hero?: string; showcase?: string[] } = {}
+  featured: { heroSlides?: string[]; showcase?: string[] } = {}
 ): {
   heroSlides: ProductSummary[];
   showcase: ProductSummary[];
@@ -226,8 +227,18 @@ export function curateHome(
 
   const bySlug = (slug: string) => cards.find((p) => p.slug === slug && p.stock > 0);
 
-  const hero = (featured.hero && bySlug(featured.hero)) || ranked.find(presentable) || ranked[0] || null;
-  const taken = new Set(hero ? [hero._id] : []);
+  // Pinned slides keep the order they were given in and skip the photo/spec
+  // and one-per-category checks: they were chosen by hand.
+  const heroSlides: ProductSummary[] = [];
+  for (const slug of featured.heroSlides ?? []) {
+    const card = bySlug(slug);
+    if (card && !heroSlides.includes(card) && heroSlides.length < HERO_SLIDE_LIMIT) heroSlides.push(card);
+  }
+  if (heroSlides.length === 0) {
+    const flagship = ranked.find(presentable) || ranked[0];
+    if (flagship) heroSlides.push(flagship);
+  }
+  const taken = new Set(heroSlides.map((p) => p._id));
 
   const showcase: ProductSummary[] = [];
   for (const slug of featured.showcase ?? []) {
@@ -237,7 +248,7 @@ export function curateHome(
       taken.add(card._id);
     }
   }
-  const categories = new Set([hero, ...showcase].map((p) => p?.categoryName ?? ""));
+  const categories = new Set([...heroSlides, ...showcase].map((p) => p.categoryName ?? ""));
   for (const pass of [0, 1]) {
     for (const card of ranked) {
       if (showcase.length === 4) break;
@@ -249,10 +260,9 @@ export function curateHome(
     }
   }
 
-  // One slide per category after the flagship. A rotation of unavailable or
+  // Fill any empty slots with one slide per category. A rotation of unavailable or
   // photo-less products would show empty plates, so only presentable, in-stock ones qualify.
-  const heroSlides = hero ? [hero] : [];
-  const slideCategories = new Set([hero?.categoryName ?? ""]);
+  const slideCategories = new Set(heroSlides.map((p) => p.categoryName ?? ""));
   for (const card of ranked) {
     if (heroSlides.length === HERO_SLIDE_LIMIT) break;
     if (taken.has(card._id) || !presentable(card) || card.stock <= 0) continue;
