@@ -243,10 +243,10 @@ function AccountControl() {
   if (!user) {
     return (
       <>
-        <ButtonLink href="/login" variant="ghost" size="icon" aria-label="Sign in" className="md:hidden">
+        <ButtonLink href="/login" variant="ghost" size="icon" aria-label="Sign in" className="xl:hidden">
           <UserIcon />
         </ButtonLink>
-        <ButtonLink href="/login" variant="ghost" size="md" className="hidden md:inline-flex">
+        <ButtonLink href="/login" variant="ghost" size="md" className="hidden xl:inline-flex">
           Sign in
         </ButtonLink>
       </>
