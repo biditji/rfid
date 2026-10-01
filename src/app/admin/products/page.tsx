@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { fetchProducts, deleteProduct, deleteProductsBulk } from "@/lib/api";
+import { fetchProductsResult, deleteProduct, deleteProductsBulk } from "@/lib/api";
 import { revalidateProducts } from "@/lib/revalidate";
 import { formatCurrency, cn, getServerUrl } from "@/lib/utils";
 import {
@@ -26,6 +26,7 @@ const ITEMS_PER_PAGE = 10;
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -42,10 +43,12 @@ export default function AdminProductsPage() {
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      // Temporary workaround until fetchProducts supports query params, or fetch all and filter in frontend for now
-      // Let's filter in frontend if fetchProducts doesn't accept params yet
-      const data = await fetchProducts();
-      
+      // Filtered in the browser: the list endpoint has no name/model search.
+      // The result form says whether the backend answered, so a failed load
+      // isn't mistaken for an empty catalog.
+      const { products: data, ok } = await fetchProductsResult();
+      setLoadFailed(!ok);
+
       let filtered = data;
       if (appliedFilters.name) {
         filtered = filtered.filter((p: any) => p.name.toLowerCase().includes(appliedFilters.name!.toLowerCase()));
@@ -202,6 +205,17 @@ export default function AdminProductsPage() {
           </button>
         </div>
       )}
+      {loadFailed && (
+        <div
+          role="alert"
+          className="rounded-md bg-red-50 p-3 text-sm font-medium text-red-800 flex items-center justify-between gap-3"
+        >
+          The store backend didn&apos;t answer, so the product list couldn&apos;t be loaded.
+          <Button variant="outline" size="sm" onClick={() => loadProducts()}>
+            Try again
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
         {/* Product List Table */}
@@ -236,7 +250,9 @@ export default function AdminProductsPage() {
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center text-zinc-500">
                       <Package className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
-                      No products found. Click "Add Product" to create one.
+                      {loadFailed
+                        ? "The product list couldn't be loaded."
+                        : 'No products found. Click "Add Product" to create one.'}
                     </td>
                   </tr>
                 ) : (

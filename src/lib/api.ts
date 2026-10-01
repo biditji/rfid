@@ -35,6 +35,16 @@ export const REVALIDATE = {
 const READ_TIMEOUT_MS = 10_000;
 
 /**
+ * The same budget for a read made from the browser, i.e. the admin panel.
+ *
+ * An admin is looking at a spinner and wants the real list, not a skeleton, so
+ * the budget has to outlast a cold start (up to 94s measured). At 10s the lists
+ * came back empty whenever the backend had been idle, which reads as "all my
+ * products are gone".
+ */
+const BROWSER_READ_TIMEOUT_MS = 100_000;
+
+/**
  * Statuses worth trying again: the request may well succeed on a second go.
  * Everything else (400/401/403/404/422 …) is a deterministic answer — retrying
  * it just multiplies load on an already unhealthy backend.
@@ -79,6 +89,29 @@ const backoffMs = (attempt: number) =>
   Math.round(400 * 2 ** attempt * (0.5 + Math.random()));
 
 /**
+ * One GET against the backend, within `timeoutMs`.
+ *
+ * The server calls the backend directly. The browser tries that first too, but
+ * a direct call is only allowed if the backend's CORS list names the page's
+ * origin, and that list holds one deployed origin besides localhost. On any
+ * other address for the site (a Vercel alias, a preview, a custom domain) the
+ * call is blocked, and the admin lists came up empty while localhost, which is
+ * always allowed, worked. A blocked call is indistinguishable from being
+ * offline (both a TypeError), so on one the read is repeated through this app's
+ * own `/api/backend` route, which is same-origin and so not subject to CORS.
+ */
+async function fetchBackend(path: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  // One signal for both attempts, so the fallback can't extend the budget.
+  const signal = AbortSignal.timeout(timeoutMs);
+  try {
+    return await fetch(`${API_URL}${path}`, { ...init, signal });
+  } catch (error) {
+    if (isServer || !(error instanceof TypeError)) throw error;
+    return await fetch(`/api/backend${path}`, { ...init, signal });
+  }
+}
+
+/**
  * GET a public endpoint with a bounded time budget and one retry.
  *
  * On the server the response is cached for `revalidate` seconds. In the browser
@@ -86,7 +119,12 @@ const backoffMs = (attempt: number) =>
  */
 async function readJson<T>(
   path: string,
-  { revalidate = 0, tags, timeoutMs = READ_TIMEOUT_MS, retries = 1 }: ReadOptions = {}
+  {
+    revalidate = 0,
+    tags,
+    timeoutMs = isServer ? READ_TIMEOUT_MS : BROWSER_READ_TIMEOUT_MS,
+    retries = 1,
+  }: ReadOptions = {}
 ): Promise<T> {
   const init: RequestInit = isServer
     ? { next: { revalidate, ...(tags ? { tags } : {}) } }
@@ -96,10 +134,7 @@ async function readJson<T>(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(`${API_URL}${path}`, {
-        ...init,
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      const res = await fetchBackend(path, init, timeoutMs);
 
       if (res.ok) return (await res.json()) as T;
 

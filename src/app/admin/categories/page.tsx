@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { fetchCategories, deleteCategory, deleteCategoriesBulk, uploadImage } from "@/lib/api";
+import { fetchCategoriesResult, deleteCategory, deleteCategoriesBulk } from "@/lib/api";
 import { revalidateCategories } from "@/lib/revalidate";
 import { cn, getServerUrl } from "@/lib/utils";
 import {
@@ -27,6 +27,7 @@ const ITEMS_PER_PAGE = 10;
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -42,8 +43,11 @@ export default function AdminCategoriesPage() {
   const loadCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchCategories(appliedFilters);
+      // The result form says whether the backend answered, so a failed load
+      // isn't mistaken for having no categories.
+      const { categories: data, ok } = await fetchCategoriesResult(appliedFilters);
       setCategories(data);
+      setLoadFailed(!ok);
     } catch (err) {
       console.error("Failed to load categories", err);
     } finally {
@@ -194,6 +198,17 @@ export default function AdminCategoriesPage() {
           </button>
         </div>
       )}
+      {loadFailed && (
+        <div
+          role="alert"
+          className="rounded-md bg-red-50 p-3 text-sm font-medium text-red-800 flex items-center justify-between gap-3"
+        >
+          The store backend didn&apos;t answer, so the category list couldn&apos;t be loaded.
+          <Button variant="outline" size="sm" onClick={() => loadCategories()}>
+            Try again
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
         {/* Category List Table */}
@@ -228,7 +243,9 @@ export default function AdminCategoriesPage() {
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center text-zinc-500">
                       <FolderTree className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
-                      No categories found. Click &quot;Add Category&quot; to create one.
+                      {loadFailed
+                        ? "The category list couldn't be loaded."
+                        : 'No categories found. Click "Add Category" to create one.'}
                     </td>
                   </tr>
                 ) : (

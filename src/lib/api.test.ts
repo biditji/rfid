@@ -51,6 +51,86 @@ describe("fetchProductsResult", () => {
   });
 });
 
+describe("public reads from the browser (the admin panel)", () => {
+  // `isServer` is fixed when the module loads, so load a fresh copy with a
+  // `window` present to get the browser behaviour.
+  async function loadAsBrowser() {
+    vi.resetModules();
+    vi.stubGlobal("window", {});
+    return import("./api");
+  }
+
+  afterEach(() => {
+    vi.resetModules();
+    vi.restoreAllMocks();
+  });
+
+  it("repeats a blocked direct call through the same-origin proxy", async () => {
+    const { fetchCategoriesResult } = await loadAsBrowser();
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) => {
+        calls.push(input);
+        // What a CORS block looks like to page script.
+        if (input.startsWith("https://")) throw new TypeError("Failed to fetch");
+        return json([{ _id: "c1", name: "Readers" }]);
+      })
+    );
+
+    const { categories, ok } = await fetchCategoriesResult();
+
+    expect(ok).toBe(true);
+    expect(categories).toHaveLength(1);
+    expect(calls[0]).toMatch(/^https:\/\/.+\/api\/categories$/);
+    expect(calls[1]).toBe("/api/backend/categories");
+  });
+
+  it("doesn't go to the proxy when the backend simply took too long", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { fetchProductsResult: fetchAsBrowser } = await loadAsBrowser();
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) => {
+        calls.push(input);
+        throw new DOMException("The operation timed out.", "TimeoutError");
+      })
+    );
+
+    expect(await fetchAsBrowser()).toEqual({ products: [], ok: false });
+    expect(calls.every((url) => url.startsWith("https://"))).toBe(true);
+  });
+
+  it("waits out a cold backend instead of giving up after the storefront's 10s", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const { fetchCategoriesResult } = await loadAsBrowser();
+    mockFetch(() => json([]));
+
+    await fetchCategoriesResult();
+
+    expect(timeout).toHaveBeenCalledWith(100_000);
+  });
+
+  it("keeps the server's short budget and never uses the proxy", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string) => {
+        calls.push(input);
+        throw new TypeError("fetch failed");
+      })
+    );
+
+    // The statically imported module was loaded without a `window`: the server.
+    expect(await fetchProductsResult()).toEqual({ products: [], ok: false });
+    expect(timeout).toHaveBeenCalledWith(10_000);
+    expect(calls.some((url) => url.includes("/api/backend"))).toBe(false);
+  });
+});
+
 describe("authenticated requests", () => {
   it("walks every page of an admin list", async () => {
     mockFetch((url) => {
