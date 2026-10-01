@@ -58,6 +58,10 @@ export default async function ContactPage({ searchParams }: Props) {
                 <a href={`tel:${SITE_CONFIG.phone}`} className="tabular-nums hover:underline">
                   {SITE_CONFIG.phone}
                 </a>
+                <br />
+                <a href={`tel:${SITE_CONFIG.phoneSecondary}`} className="tabular-nums hover:underline">
+                  {SITE_CONFIG.phoneSecondary}
+                </a>
               </Row>
               <Row label="WhatsApp">
                 <a

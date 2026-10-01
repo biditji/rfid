@@ -9,6 +9,10 @@ export const SITE_CONFIG = {
   email: "info@Virtualspheretechnologies.in",
   /** The office's mobile line; it is also the number people ring and message. */
   phone: "+91-7050506400",
+  /** A second line for calls, shown beside `phone` in the footer and on the contact page. */
+  phoneSecondary: "+91-8287635245",
+  /** Support site: reader SDKs, drivers and datasheets. */
+  resourcesUrl: "https://resource.indiarfidshop.com",
   /**
    * WhatsApp number, international format. ⚠ REVIEW: assumed to be the same
    * mobile as `phone`; change it here if WhatsApp runs on a different number.
@@ -97,13 +101,13 @@ export const PRODUCT_CATEGORIES = [
  * boxes. Any slug that's disabled or out of stock is replaced automatically
  * (see curateHome), and products in the hero are never repeated in the showcase.
  *
- * Hero, as requested: UDM9R, UHR 2, UDT9R, UDM12R, UDR 105.
+ * Hero, as requested: UDT9R, UDM9R, UHR 2, UDM12R, UDR 105.
  */
 export const HOME_FEATURED = {
   heroSlides: [
+    "udt9r-rfid-jewellery-tray-reader",
     "udm9r-Integrated-reader",
     "uhr2-uhf-rfid-handheld-reader",
-    "udt9r-rfid-jewellery-tray-reader",
     "udm12r-uhf-Integrated-reader",
     "udr-w105-uhf-rfid-desktop-reader-writer",
   ],

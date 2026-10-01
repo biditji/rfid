@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { SITE_CONFIG, NAV_ITEMS, PRODUCT_CATEGORIES, sdkRequestUrl, whatsappUrl } from "@/lib/constants";
+import { LifeBuoy } from "lucide-react";
+import { SITE_CONFIG, NAV_ITEMS, PRODUCT_CATEGORIES, whatsappUrl } from "@/lib/constants";
 import { slugify } from "@/lib/utils";
 import { PageContainer } from "@/components/shared/page-container";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
@@ -63,6 +64,11 @@ export function Footer() {
                   <span className="sr-only">Mobile: </span>
                   {SITE_CONFIG.phone}
                 </a>
+                <br />
+                <a href={`tel:${SITE_CONFIG.phoneSecondary}`} className={`${linkClass} tabular-nums`}>
+                  <span className="sr-only">Mobile: </span>
+                  {SITE_CONFIG.phoneSecondary}
+                </a>
               </p>
               <p>
                 <a
@@ -81,11 +87,14 @@ export function Footer() {
                 </a>
               </p>
               <p>
-                <span className="block text-meta text-muted-foreground uppercase">Reader SDK &amp; resources</span>
-                <a href={sdkRequestUrl("Reader SDK request")} className={linkClass}>
-                  {/* A long address needs somewhere sensible to wrap: after the @, not mid-word. */}
-                  {SITE_CONFIG.sdkEmail.split("@")[0]}@<wbr />
-                  {SITE_CONFIG.sdkEmail.split("@")[1]}
+                <a
+                  href={SITE_CONFIG.resourcesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${linkClass} inline-flex items-center gap-2`}
+                >
+                  <LifeBuoy aria-hidden className="size-4" />
+                  Support
                 </a>
               </p>
             </address>

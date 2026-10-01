@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Search, ShoppingCart, User as UserIcon, LogOut, ArrowRight, Phone } from "lucide-react";
+import { Menu, X, Search, ShoppingCart, User as UserIcon, LogOut, ArrowRight, ArrowUpRight, Phone } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +22,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
 const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+const navLinkClass =
+  // The active item carries the brand underline, echoing the logo.
+  "relative flex items-center px-3 text-small font-medium transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand after:opacity-0 after:transition-opacity";
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -44,7 +48,7 @@ export function Header() {
           <img src="/logo.png" alt="" width={1024} height={216} className="h-7 w-auto sm:h-8" />
         </Link>
 
-        <nav aria-label="Main" className="hidden h-full items-stretch md:flex">
+        <nav aria-label="Main" className="hidden h-full items-stretch lg:flex">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
             return (
@@ -53,8 +57,7 @@ export function Header() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  // The active item carries the brand underline, echoing the logo.
-                  "relative flex items-center px-3 text-small font-medium transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand after:opacity-0 after:transition-opacity",
+                  navLinkClass,
                   active ? "text-foreground after:opacity-100" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -62,36 +65,39 @@ export function Header() {
               </Link>
             );
           })}
+          {/* The support site is a separate property, so it opens in a new tab. */}
+          <a
+            href={SITE_CONFIG.resourcesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(navLinkClass, "gap-1 text-muted-foreground hover:text-foreground")}
+          >
+            Support
+            <ArrowUpRight aria-hidden className="size-3.5" />
+            <span className="sr-only">(opens in a new tab)</span>
+          </a>
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
-          <SearchForm className="hidden w-60 xl:block" />
+          <SearchForm className="hidden w-48 xl:block" />
           <ButtonLink
             href="/products"
             variant="ghost"
             size="icon"
             aria-label="Search products"
-            className="hidden md:inline-flex xl:hidden"
+            className="hidden lg:inline-flex xl:hidden"
           >
             <Search />
           </ButtonLink>
           <AccountControl />
           <CartLink />
-          <a
-            href={`tel:${SITE_CONFIG.phone}`}
-            className="ml-2 hidden shrink-0 items-center gap-2 text-small font-medium whitespace-nowrap text-muted-foreground tabular-nums transition-colors hover:text-foreground min-[1340px]:inline-flex"
-          >
-            <Phone aria-hidden className="size-4" />
-            <span className="sr-only">Call </span>
-            {SITE_CONFIG.phone}
-          </a>
           <ButtonLink href="/contact" size="md" className="ml-2 hidden lg:inline-flex">
             Request a quote
           </ButtonLink>
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="lg:hidden"
             onClick={() => setMobileOpen((open) => !open)}
             aria-expanded={mobileOpen}
             aria-controls={menuId}
@@ -108,7 +114,7 @@ export function Header() {
         id={menuId}
         inert={!mobileOpen}
         className={cn(
-          "grid border-t transition-[grid-template-rows,border-color] duration-300 ease-standard md:hidden motion-reduce:transition-none",
+          "grid border-t transition-[grid-template-rows,border-color] duration-300 ease-standard lg:hidden motion-reduce:transition-none",
           mobileOpen ? "grid-rows-[1fr] border-border" : "grid-rows-[0fr] border-transparent"
         )}
       >
@@ -134,6 +140,19 @@ export function Header() {
                     </li>
                   );
                 })}
+                <li>
+                  <a
+                    href={SITE_CONFIG.resourcesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-12 items-center justify-between text-body font-medium text-muted-foreground"
+                  >
+                    <span>
+                      Support<span className="sr-only"> (opens in a new tab)</span>
+                    </span>
+                    <ArrowUpRight aria-hidden className="size-4" />
+                  </a>
+                </li>
               </ul>
             </nav>
             <div className="grid grid-cols-2 gap-3">
@@ -241,7 +260,7 @@ function AccountControl() {
         className="inline-flex h-10 items-center gap-2 rounded-control px-2.5 text-small font-medium text-foreground transition-colors hover:bg-muted aria-expanded:bg-muted"
       >
         <UserIcon className="size-5" />
-        <span className="hidden max-w-[7rem] truncate lg:inline">{user.name.split(" ")[0]}</span>
+        <span className="hidden max-w-[7rem] truncate xl:inline">{user.name.split(" ")[0]}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <div className="px-2.5 py-2">
