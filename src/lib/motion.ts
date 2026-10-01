@@ -18,6 +18,7 @@
  * (including ScrollTriggers) on unmount.
  */
 
+import { useSyncExternalStore } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
@@ -44,5 +45,25 @@ export const DURATION = {
 export const MOTION_OK = "(prefers-reduced-motion: no-preference)";
 /** Scroll storytelling layouts (pinned/sticky) only from here up. */
 export const DESKTOP = "(min-width: 1024px)";
+
+function subscribeMotion(onChange: () => void) {
+  const query = window.matchMedia(MOTION_OK);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+/**
+ * Whether motion is allowed, for render decisions (what to mount, whether
+ * something should run on a timer). Animations themselves still go through
+ * `gsap.matchMedia()`. False on the server and during hydration, so the
+ * static layout is what first renders.
+ */
+export function useMotionOk() {
+  return useSyncExternalStore(
+    subscribeMotion,
+    () => window.matchMedia(MOTION_OK).matches,
+    () => false
+  );
+}
 
 export { gsap, ScrollTrigger, SplitText, useGSAP };

@@ -39,15 +39,15 @@ export default function AboutPage() {
           </div>
           <div className="space-y-6 text-lead text-pretty text-muted-foreground lg:col-span-7 lg:pt-10">
             <p>
-              <strong className="font-semibold text-foreground">Virtualsphere Technologies Pvt Ltd</strong> Provide Wide
-              ranges of Rfid Product. We as a Information Technologies mainly provide services in RFID Implementation,
-              Software Development as well as Digital Media Service.
+              <strong className="font-semibold text-foreground">Virtualsphere Technologies</strong> is an RFID
+              technology and manufacturing company delivering end-to-end identification, tracking, security, and
+              automation solutions. We design and manufacture RFID Readers, Antennas, Tags, and integrated RFID systems
+              for diverse industry applications.
             </p>
             <p>
-              We are an Elite Enterprise Solution &amp; IT service provider. With our effective digital solutions and
-              immense expertise in cutting-edge technologies, we are helping companies around the world to transform
-              their business. We offer a variety of services in the area of Rfid, software and web development. We have
-              provided 24+ software solution all over India.
+              With in-house R&amp;D, RF simulation, product design, prototyping, fabrication, and testing capabilities,
+              we develop customized solutions with flexible wired and wireless communication interfaces, enabling
+              reliable, scalable, and application-specific RFID deployments from concept to implementation.
             </p>
           </div>
         </PageContainer>
@@ -57,21 +57,35 @@ export default function AboutPage() {
         <PageContainer className="grid grid-cols-1 gap-12 py-16 md:grid-cols-2 lg:py-24">
           <div>
             <Eyebrow>Our vision</Eyebrow>
-            <p className="mt-5 text-h3 text-pretty">Make Technology an asset for Our Clients &amp; not a Problem!</p>
-            <p className="mt-4 text-body text-pretty text-muted-foreground">
-              Our vision is to be one of the Most Innovative IT Company in the industry who is known for Translating
-              Technologies into Agile Solutions which add Value to Our Clients.
+            <p className="mt-5 text-lead text-pretty">
+              To become a globally recognized RFID technology leader, pioneering indigenous innovation, advanced
+              engineering, and integrated manufacturing from India, while delivering intelligent, scalable, and globally
+              competitive identification, tracking, security, and automation solutions across industries.
             </p>
           </div>
           <div className="md:border-l md:border-border md:pl-12">
             <Eyebrow>Our mission</Eyebrow>
-            <p className="mt-5 text-h3 text-pretty">
-              For us, it matters that we drive technology as an equalizing force, as an enabler for everyone around the
-              world.
+            <p className="mt-5 text-lead text-pretty">
+              To establish India as a global hub for indigenous RFID innovation through advanced R&amp;D, engineering,
+              vertical manufacturing, and development of globally competitive Readers, Tags, Modules, Antennas, and
+              intelligent identification solutions.
             </p>
-            <p className="mt-4 text-body text-pretty text-muted-foreground">
-              To provide excellent service for the growth of our clients and partners across the globe. We bring
-              solutions to make life easier for our clients.
+          </div>
+        </PageContainer>
+      </section>
+
+      <section aria-label="Our team" className="border-b border-border">
+        <PageContainer className="py-16 lg:py-24">
+          <Eyebrow>Our team</Eyebrow>
+          <div className="mt-5 max-w-3xl space-y-4 text-lead text-pretty">
+            <p>
+              Our team combines experienced engineers and MBA professionals focused on engineering excellence,
+              market-driven innovation, reliable product support, customer-centric solutions, and uncompromising
+              quality.
+            </p>
+            <p className="text-muted-foreground">
+              Delivering efficient products, faster issue resolution, and a trusted brand experience built around
+              customer success.
             </p>
           </div>
         </PageContainer>

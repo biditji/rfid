@@ -32,13 +32,13 @@ const getHome = cache(async () => {
 });
 
 async function HeroProduct() {
-  const { ok, hero } = await getHome();
+  const { ok, heroSlides } = await getHome();
   if (!ok) {
     return (
       <ProductsUnavailable description="We couldn't reach the product catalog just now. The rest of the site is unaffected." />
     );
   }
-  return hero ? <HeroVisual product={hero} /> : null;
+  return heroSlides.length > 0 ? <HeroVisual products={heroSlides} /> : null;
 }
 
 async function Showcase() {

@@ -197,13 +197,20 @@ export async function getProductIndex(): Promise<{ slug: string; updatedAt?: str
  * leads, highest price first as a proxy for flagship models, and the showcase
  * takes one product per category so it reads as a range rather than four
  * variants of one reader.
+ *
+ * The hero is a rotation (`heroSlides`): the flagship first, then one product
+ * from each other category, so the plate shows the range — a reader, an
+ * antenna, a tag — rather than one product. Slides come from what the showcase
+ * and rail don't use, so no product appears twice on the page.
  */
+export const HERO_SLIDE_LIMIT = 5;
+
 export function curateHome(
   cards: ProductSummary[],
   /** Merchandising picks by slug; any that aren't live and in stock are filled automatically. */
   featured: { hero?: string; showcase?: string[] } = {}
 ): {
-  hero: ProductSummary | null;
+  heroSlides: ProductSummary[];
   showcase: ProductSummary[];
   rail: ProductSummary[];
 } {
@@ -242,7 +249,20 @@ export function curateHome(
     }
   }
 
+  // One slide per category after the flagship. A rotation of unavailable or
+  // photo-less products would show empty plates, so only presentable, in-stock ones qualify.
+  const heroSlides = hero ? [hero] : [];
+  const slideCategories = new Set([hero?.categoryName ?? ""]);
+  for (const card of ranked) {
+    if (heroSlides.length === HERO_SLIDE_LIMIT) break;
+    if (taken.has(card._id) || !presentable(card) || card.stock <= 0) continue;
+    if (slideCategories.has(card.categoryName ?? "")) continue;
+    heroSlides.push(card);
+    taken.add(card._id);
+    slideCategories.add(card.categoryName ?? "");
+  }
+
   const rail = ranked.filter((card) => !taken.has(card._id)).slice(0, 10);
 
-  return { hero, showcase, rail };
+  return { heroSlides, showcase, rail };
 }
