@@ -97,6 +97,17 @@ export default function CartPage() {
             setCheckoutError("");
             try {
               await verifyRazorpayPayment(payment);
+
+              // Google Ads purchase conversion
+              if (typeof window !== "undefined" && typeof window.gtag === "function") {
+                window.gtag("event", "conversion", {
+                  send_to: "AW-17705374623/Ty7LCMWB7ZAdEJ-nyvpB",
+                  value: cartTotal,
+                  currency: "INR",
+                  transaction_id: payment.razorpay_order_id,
+                });
+              }
+
               await refreshCart();
               router.push("/orders");
             } catch (verifyError) {

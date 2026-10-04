@@ -99,10 +99,10 @@ export default function RootLayout({
       </body>
       <GoogleAnalytics gaId="G-CS0VVTPQ0G" />
       <Script
-        id="ga-second-property"
+        id="ga-extra-tags"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
-          __html: `gtag('config', 'G-7F6J4PE0LL');`,
+          __html: `gtag('config', 'G-7F6J4PE0LL'); gtag('config', 'AW-17705374623');`,
         }}
       />
     </html>
