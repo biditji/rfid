@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { SITE_URL } from "@/lib/config";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -97,7 +98,13 @@ export default function RootLayout({
         </AuthProvider>
       </body>
       <GoogleAnalytics gaId="G-CS0VVTPQ0G" />
-      <GoogleAnalytics gaId="G-7F6J4PE0LL" />
+      <Script
+        id="ga-second-property"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `gtag('config', 'G-7F6J4PE0LL');`,
+        }}
+      />
     </html>
   );
 }
