@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Trash2 } from "lucide-react";
+import { ArrowRight, ShieldCheck, Trash2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError, createOrder, verifyRazorpayPayment } from "@/lib/api";
@@ -12,6 +12,8 @@ import { checkoutErrorMessage, loadRazorpay, openCheckout } from "@/lib/razorpay
 import { useSlowHint } from "@/lib/use-slow-hint";
 import { cn, formatCurrency } from "@/lib/utils";
 import { GST_NOTE } from "@/lib/constants";
+import { DURATION, EASE, MOTION_OK, gsap, useGSAP } from "@/lib/motion";
+import { OrderVerified } from "@/components/checkout/order-verified";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +43,40 @@ export default function CartPage() {
   // or something fails. Drives the "still working" hint.
   const [preparing, setPreparing] = useState(false);
   const checkoutSlow = useSlowHint(preparing);
+
+  // Set once the payment is verified: shows the "Order verified" screen, which
+  // then moves on to the orders page.
+  const [verified, setVerified] = useState<{ paymentId: string } | null>(null);
+
+  const liveItems = items.filter((item) => item.product);
+  const hasItems = !loading && liveItems.length > 0;
+
+  // The checkout arrives: items rise in sequence and the order summary slides
+  // in beside them. Once, when the cart first has items to show.
+  const layout = useRef<HTMLDivElement>(null);
+  useGSAP(
+    () => {
+      if (!hasItems) return;
+      const mm = gsap.matchMedia();
+      mm.add(MOTION_OK, () => {
+        gsap.from("[data-cart-item]", {
+          y: 14,
+          autoAlpha: 0,
+          duration: DURATION.reveal,
+          ease: EASE.emphasized,
+          stagger: 0.06,
+        });
+        gsap.from("[data-cart-summary]", {
+          x: 28,
+          autoAlpha: 0,
+          duration: DURATION.intro,
+          ease: EASE.emphasized,
+          delay: 0.1,
+        });
+      });
+    },
+    { scope: layout, dependencies: [hasItems] }
+  );
 
   const handleCheckout = async () => {
     setCheckoutError("");
@@ -97,6 +133,7 @@ export default function CartPage() {
             setCheckoutError("");
             try {
               await verifyRazorpayPayment(payment);
+              setVerified({ paymentId: payment.razorpay_payment_id });
 
               // Google Ads purchase conversion
               if (typeof window !== "undefined" && typeof window.gtag === "function") {
@@ -108,8 +145,8 @@ export default function CartPage() {
                 });
               }
 
+              // The confirmation screen moves on to /orders when it's done.
               await refreshCart();
-              router.push("/orders");
             } catch (verifyError) {
               console.error("Payment verification failed", verifyError);
               setCheckoutError("We couldn't verify your payment. Please contact support before trying again.");
@@ -155,10 +192,10 @@ export default function CartPage() {
     }
   };
 
-  const liveItems = items.filter((item) => item.product);
-
   return (
     <PageContainer className="pt-10 pb-20 lg:pt-14">
+      {verified && <OrderVerified paymentId={verified.paymentId} onDone={() => router.push("/orders")} />}
+
       <SectionHeader as="h1" eyebrow="Checkout" title="Cart" />
 
       {loading ? (
@@ -186,14 +223,14 @@ export default function CartPage() {
           </div>
         </div>
       ) : (
-        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
+        <div ref={layout} className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
           <section aria-label="Items in your cart" className="lg:col-span-7">
             <ul className="divide-y divide-border border-y border-border">
               {liveItems.map((item) => {
                 const product = item.product!;
                 const min = Math.max(1, product.minimumQuantity ?? 1);
                 return (
-                  <li key={product._id} className="flex gap-4 py-6 sm:gap-6">
+                  <li key={product._id} data-cart-item className="flex gap-4 py-6 sm:gap-6">
                     <ProductMedia
                       src={product.images?.[0]}
                       alt=""
@@ -250,7 +287,7 @@ export default function CartPage() {
           </section>
 
           <section aria-labelledby="summary-heading" className="lg:col-span-5">
-            <div className="rounded-card border border-border bg-card p-6 sm:p-8 lg:sticky lg:top-24">
+            <div data-cart-summary className="rounded-card border border-border bg-card p-6 sm:p-8 lg:sticky lg:top-24">
               <h2 id="summary-heading" className="text-h3">
                 Order summary
               </h2>
@@ -307,7 +344,8 @@ export default function CartPage() {
 
                 <Button
                   size="xl"
-                  className="w-full"
+                  // While busy, a sheen crosses the button — the order being read and prepared.
+                  className="relative w-full overflow-hidden aria-busy:after:absolute aria-busy:after:inset-y-0 aria-busy:after:left-0 aria-busy:after:w-1/3 aria-busy:after:scan-beam-x motion-safe:aria-busy:after:animate-scan-x"
                   onClick={handleCheckout}
                   loading={checkoutLoading}
                   loadingText="Processing…"
@@ -315,6 +353,16 @@ export default function CartPage() {
                 >
                   Proceed to payment
                 </Button>
+
+                <p className="flex items-start gap-3 text-small text-muted-foreground">
+                  <span aria-hidden className="relative mt-0.5 grid size-4 shrink-0 place-items-center">
+                    {checkoutLoading && (
+                      <span className="absolute inset-0 rounded-full bg-brand/30 motion-safe:animate-rf-ping" />
+                    )}
+                    <ShieldCheck className="relative size-4 text-foreground" />
+                  </span>
+                  Payments are processed by Razorpay and verified before your order is confirmed.
+                </p>
               </div>
             </div>
           </section>

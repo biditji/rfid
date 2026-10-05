@@ -69,6 +69,8 @@ export function ImageGallery({ images, productName }: { images: string[]; produc
         role={count > 1 ? "group" : undefined}
         aria-roledescription={count > 1 ? "carousel" : undefined}
         aria-label={count > 1 ? `Photos of ${productName}` : undefined}
+        // Where the add-to-cart flight lifts the photo from (lib/cart-flight).
+        data-flight-source
         className="relative overflow-hidden rounded-card border border-border"
       >
         {count > 1 && (

@@ -1,15 +1,16 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import type { ProductSummary } from "@/lib/products";
 import { ProductMedia } from "@/components/shared/product-image";
 import { StockBadge } from "@/components/shared/status-badge";
 import { ActionLink } from "@/components/shared/section-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DURATION, EASE, MOTION_OK, gsap, useGSAP } from "@/lib/motion";
+import { DURATION, EASE, MOTION_OK, gsap, useGSAP, useMotionOk } from "@/lib/motion";
 import { useRotation } from "@/lib/use-rotation";
 import { cn, formatCurrency } from "@/lib/utils";
+import { ScanOverlay } from "./scan-overlay";
 
 /** How long each product holds the plate before the next fades in. */
 const SLIDE_SECONDS = 2;
@@ -29,6 +30,10 @@ const SLIDE_SECONDS = 2;
  * it, keyboard focus in it, scrolled out of view, or paused with the button —
  * and doesn't run at all under reduced motion, which shows the first product
  * with the same controls for stepping through by hand.
+ *
+ * Each product is scanned as it takes the plate (ScanOverlay): the first one
+ * with the full sequence, as the page's opening beat; the rest with a shorter
+ * pass. Motion only — the static plate is unchanged.
  */
 export function HeroVisual({ products }: { products: ProductSummary[] }) {
   const root = useRef<HTMLElement>(null);
@@ -41,6 +46,11 @@ export function HeroVisual({ products }: { products: ProductSummary[] }) {
 
   // Which slide was last on show, so the swap knows what to fade out.
   const previous = useRef(0);
+
+  const scan = useMotionOk();
+  // The opening scan plays once; returning to the first slide later gets the short pass.
+  const [swapped, setSwapped] = useState(false);
+  if (!swapped && active !== 0) setSwapped(true);
 
   useGSAP(
     () => {
@@ -161,7 +171,14 @@ export function HeroVisual({ products }: { products: ProductSummary[] }) {
 
       <div className="grid" aria-live={running ? "off" : "polite"}>
         {products.map((product, i) => (
-          <Slide key={product._id} product={product} index={i} count={count} isActive={i === active} />
+          <Slide
+            key={product._id}
+            product={product}
+            index={i}
+            count={count}
+            isActive={i === active}
+            scan={scan ? { first: !swapped } : null}
+          />
         ))}
       </div>
     </section>
@@ -173,11 +190,14 @@ function Slide({
   index,
   count,
   isActive,
+  scan,
 }: {
   product: ProductSummary;
   index: number;
   count: number;
   isActive: boolean;
+  /** Run the scan overlay while this slide is on show. */
+  scan: { first: boolean } | null;
 }) {
   const specs = product.keySpecs.slice(0, 4);
 
@@ -205,6 +225,8 @@ function Slide({
             />
           </div>
         </div>
+
+        {scan && isActive && <ScanOverlay product={product} first={scan.first} />}
 
         {product.dimensions && (
           <p className="absolute inset-x-5 bottom-4 flex items-center gap-3 text-muted-foreground sm:inset-x-8">

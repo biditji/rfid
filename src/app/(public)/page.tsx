@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Hero } from "@/components/home/hero";
 import { HeroVisual, HeroVisualSkeleton } from "@/components/home/hero-visual";
 import { ShowcaseSection, ShowcaseSkeleton } from "@/components/home/showcase-section";
+import { ScanSpotlight } from "@/components/home/scan-spotlight";
 import { ProductDiscovery, ProductDiscoverySkeleton } from "@/components/home/product-discovery";
 import { RfidSystem } from "@/components/home/rfid-system";
 import { ProofSection } from "@/components/home/proof-section";
@@ -48,14 +49,21 @@ async function Showcase() {
   return <ShowcaseSection products={showcase} />;
 }
 
+async function Spotlight() {
+  const { ok, spotlight } = await getHome();
+  if (!ok || !spotlight) return null;
+  return <ScanSpotlight product={spotlight} />;
+}
+
 async function Discovery() {
   const [{ ok, rail, total }, categories] = await Promise.all([getHome(), getStorefrontCategories()]);
   return <ProductDiscovery categories={categories} products={ok ? rail : []} totalProducts={ok ? total : null} />;
 }
 
 /**
- * The home page as a narrative: what we sell (hero) → the flagship hardware
- * (stack) → where to start browsing (discovery) → how RFID works (system) →
+ * The home page as a narrative: what we sell (hero) → one product read,
+ * verified and ordered (spotlight) → the flagship hardware (stack) → where
+ * to start browsing (discovery) → how RFID works (system) →
  * who uses it (proof) → why us → where it's deployed (industries) → the ask.
  *
  * Nothing here awaits at the top level. Static sections stream immediately;
@@ -72,6 +80,10 @@ export default function HomePage() {
           </Suspense>
         }
       />
+      {/* Below the fold, so it can stream in without a placeholder. */}
+      <Suspense fallback={null}>
+        <Spotlight />
+      </Suspense>
       <Suspense fallback={<ShowcaseSkeleton />}>
         <Showcase />
       </Suspense>

@@ -101,3 +101,26 @@ describe("curateHome hero slides", () => {
     expect(curateHome([]).heroSlides).toEqual([]);
   });
 });
+
+describe("curateHome spotlight", () => {
+  it("presents an in-stock, presentable product used nowhere else on the page", () => {
+    const cards = [
+      ...["A", "B", "C", "D", "E", "F"].map((n) => card({ categoryName: `${n} Reader`, price: 90000 })),
+      card({ categoryName: "Sold Out Reader", stock: 0, price: 95000 }),
+      // Same categories as above, so the hero's one-per-category fill leaves them.
+      card({ categoryName: "A Reader", price: 80000, slug: "left-1" }),
+      card({ categoryName: "B Reader", price: 70000, slug: "left-2" }),
+    ];
+    const { heroSlides, showcase, spotlight, rail } = curateHome(cards);
+
+    expect(spotlight?.slug).toBe("left-1");
+    expect(spotlight!.stock).toBeGreaterThan(0);
+    const elsewhere = [...heroSlides, ...showcase, ...rail].map((p) => p._id);
+    expect(elsewhere).not.toContain(spotlight!._id);
+  });
+
+  it("is null when nothing is left to present", () => {
+    expect(curateHome([card({ categoryName: "Handheld Reader" })]).spotlight).toBeNull();
+    expect(curateHome([]).spotlight).toBeNull();
+  });
+});

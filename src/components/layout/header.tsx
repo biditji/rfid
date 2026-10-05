@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Search, ShoppingCart, User as UserIcon, LogOut, ArrowRight, ArrowUpRight, Phone } from "lucide-react";
@@ -18,6 +18,8 @@ import { PageContainer } from "@/components/shared/page-container";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { NAV_ITEMS, SITE_CONFIG, whatsappUrl } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { CART_LANDED } from "@/lib/cart-flight";
+import { MOTION_OK, gsap } from "@/lib/motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
@@ -212,26 +214,85 @@ function SearchForm({ className, onSubmitted }: { className?: string; onSubmitte
   );
 }
 
+/**
+ * The header cart. It's the landing point of the add-to-cart flight
+ * (`data-cart-target`, see lib/cart-flight): when a product lands, the icon
+ * gives a short spring, an RF ring pulses out from it and an "Added" tag drops
+ * in underneath, then everything settles back. Under reduced motion only the
+ * tag shows, without movement.
+ */
 function CartLink() {
   const { cartCount } = useCart();
+  const root = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const node = root.current;
+    if (!node) return;
+    let timeline: gsap.core.Timeline | undefined;
+
+    const onLanded = () => {
+      timeline?.progress(1).kill();
+      const icon = node.querySelector("svg");
+      const ring = node.querySelector("[data-cart-ring]");
+      const tag = node.querySelector("[data-cart-tag]");
+      const badge = node.querySelector("[data-cart-badge]");
+
+      if (!window.matchMedia(MOTION_OK).matches) {
+        timeline = gsap.timeline().set(tag, { autoAlpha: 1 }).set(tag, { autoAlpha: 0 }, 1.4);
+        return;
+      }
+      timeline = gsap
+        .timeline()
+        .fromTo(icon, { scale: 1 }, { scale: 1.22, duration: 0.12, ease: "power2.out" })
+        .to(icon, { scale: 1, duration: 0.7, ease: "elastic.out(1, 0.4)" })
+        .fromTo(ring, { scale: 0.5, autoAlpha: 0.7 }, { scale: 2.2, autoAlpha: 0, duration: 0.7, ease: "expo.out" }, 0)
+        .fromTo(badge, { scale: 0.4 }, { scale: 1, duration: 0.6, ease: "back.out(3)" }, 0.05)
+        .fromTo(tag, { y: -6, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.3, ease: "expo.out" }, 0.08)
+        .to(tag, { y: -4, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 1.3);
+    };
+
+    window.addEventListener(CART_LANDED, onLanded);
+    return () => {
+      window.removeEventListener(CART_LANDED, onLanded);
+      timeline?.kill();
+    };
+  }, []);
+
   return (
-    <ButtonLink
-      href="/cart"
-      variant="ghost"
-      size="icon"
-      className="relative"
-      aria-label={cartCount > 0 ? `Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}` : "Cart"}
-    >
-      <ShoppingCart />
-      {cartCount > 0 && (
-        <span
-          aria-hidden
-          className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-meta leading-none tracking-normal text-brand-foreground tabular-nums"
-        >
-          {cartCount > 99 ? "99+" : cartCount}
-        </span>
-      )}
-    </ButtonLink>
+    <span ref={root} data-cart-target className="relative inline-flex">
+      <ButtonLink
+        href="/cart"
+        variant="ghost"
+        size="icon"
+        className="relative"
+        aria-label={cartCount > 0 ? `Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}` : "Cart"}
+      >
+        <ShoppingCart />
+        {cartCount > 0 && (
+          <span
+            data-cart-badge
+            aria-hidden
+            className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-meta leading-none tracking-normal text-brand-foreground tabular-nums"
+          >
+            {cartCount > 99 ? "99+" : cartCount}
+          </span>
+        )}
+      </ButtonLink>
+      <span
+        data-cart-ring
+        aria-hidden
+        className="pointer-events-none invisible absolute inset-1.5 rounded-full border border-brand opacity-0"
+      />
+      {/* The confirmation itself is announced by the form that added the item. */}
+      <span
+        data-cart-tag
+        aria-hidden
+        className="pointer-events-none invisible absolute top-full left-1/2 mt-1.5 flex -translate-x-1/2 items-center gap-1.5 rounded-control border border-border bg-background px-2 py-1 text-meta whitespace-nowrap uppercase opacity-0 shadow-raised"
+      >
+        <span className="size-1.5 rounded-full bg-brand" />
+        Added
+      </span>
+    </span>
   );
 }
 

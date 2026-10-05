@@ -1,14 +1,11 @@
 "use client";
 
-import { useId, useState } from "react";
-import { ShoppingCart } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { Check, ShoppingCart } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { ActionLink } from "@/components/shared/section-header";
 import { QuantityStepper } from "@/components/shared/quantity-stepper";
-import { useAuth } from "@/contexts/AuthContext";
-import { useCart } from "@/contexts/CartContext";
-
-type Status = "idle" | "adding" | "added" | "signin" | "error";
+import { useAddToCart } from "@/lib/use-add-to-cart";
 
 /**
  * Quantity, Add to cart and Request a quote — the purchase controls that sit
@@ -18,6 +15,10 @@ type Status = "idle" | "adding" | "added" | "signin" | "error";
  * (tags sell in hundreds). Results are announced inline in a live region: the
  * old flow gave no confirmation at all, and signed-out visitors got a
  * browser alert().
+ *
+ * A successful add flies the photo on show in the gallery (the page's
+ * `[data-flight-source]`) into the header cart, and the button reads "Added"
+ * for a moment before returning to normal.
  */
 export function PurchaseForm({
   productId,
@@ -34,28 +35,16 @@ export function PurchaseForm({
   stock: number;
   minimumQuantity: number;
 }) {
-  const { user } = useAuth();
-  const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(minimumQuantity);
-  const [status, setStatus] = useState<Status>("idle");
-  const [added, setAdded] = useState(0);
+  const { status, setStatus, added, justAdded, add } = useAddToCart();
   const qtyId = useId();
+  const button = useRef<HTMLButtonElement>(null);
 
   const purchasable = stock >= minimumQuantity;
 
-  const add = async () => {
-    if (!user) {
-      setStatus("signin");
-      return;
-    }
-    setStatus("adding");
-    try {
-      await addToCart(productId, quantity);
-      setAdded(quantity);
-      setStatus("added");
-    } catch {
-      setStatus("error");
-    }
+  const onAdd = () => {
+    const source = document.querySelector("[data-flight-source]") ?? button.current;
+    void add(productId, quantity, source);
   };
 
   const quoteHref = `/contact?${new URLSearchParams({
@@ -83,15 +72,16 @@ export function PurchaseForm({
           disabled={!purchasable}
         />
         <Button
+          ref={button}
           size="xl"
           className="min-w-48 flex-1"
-          onClick={add}
+          onClick={onAdd}
           disabled={!purchasable}
           loading={status === "adding"}
           loadingText="Adding…"
-          startIcon={<ShoppingCart />}
+          startIcon={justAdded ? <Check className="motion-safe:animate-in motion-safe:zoom-in-50" /> : <ShoppingCart />}
         >
-          {purchasable ? "Add to cart" : "Out of stock"}
+          {!purchasable ? "Out of stock" : justAdded ? "Added" : "Add to cart"}
         </Button>
       </div>
 

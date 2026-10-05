@@ -35,7 +35,8 @@ type ProductMediaProps = {
  *
  * Goes through the Next.js Image Optimizer: the backend serves ~500 KB PNGs;
  * this resizes to the rendered size, re-encodes to WebP and lazy-loads.
- * Inside a `group` (a card), the photo lifts slightly on hover.
+ * Inside a `group` (a card), the photo lifts slightly on hover and a single
+ * scan beam crosses the plate — the reader's view of the product.
  */
 export function ProductMedia({
   src,
@@ -54,18 +55,24 @@ export function ProductMedia({
     <div className={cn("relative overflow-hidden bg-muted", className)}>
       {grid && <div aria-hidden className="bg-grid absolute inset-0" />}
       {src ? (
-        <Image
-          src={getServerUrl(src)}
-          alt={alt}
-          fill
-          sizes={sizes}
-          loading={priority ? "eager" : "lazy"}
-          fetchPriority={priority ? "high" : "auto"}
-          className={cn(
-            "product-photo object-contain p-[8%] transition-transform duration-500 ease-emphasized group-hover:scale-[1.035] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
-            imageClassName
-          )}
-        />
+        <>
+          <Image
+            src={getServerUrl(src)}
+            alt={alt}
+            fill
+            sizes={sizes}
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
+            className={cn(
+              "product-photo object-contain p-[8%] transition-transform duration-500 ease-emphasized group-hover:scale-[1.035] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+              imageClassName
+            )}
+          />
+          <span
+            aria-hidden
+            className="scan-beam pointer-events-none absolute inset-0 opacity-0 group-hover:animate-scan-sweep motion-reduce:hidden"
+          />
+        </>
       ) : (
         <div
           aria-hidden

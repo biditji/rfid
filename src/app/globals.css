@@ -190,6 +190,45 @@
     }
   }
 
+  /* The scan: one beam crossing a product plate (hover) or a busy control. */
+  /* The beam's bright edge is its bottom, so -100% → 0 carries it across the
+     whole plate. */
+  --animate-scan-sweep: scan-sweep 0.9s cubic-bezier(0.65, 0, 0.35, 1) both;
+  @keyframes scan-sweep {
+    from {
+      transform: translateY(-100%);
+      opacity: 1;
+    }
+    80% {
+      opacity: 1;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 0;
+    }
+  }
+  --animate-scan-x: scan-x 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  @keyframes scan-x {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
+    }
+  }
+  /* A reader's field, pulsing out from a point. */
+  --animate-rf-ping: rf-ping 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  @keyframes rf-ping {
+    from {
+      transform: scale(0.6);
+      opacity: 0.7;
+    }
+    to {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+
   --animate-skeleton: skeleton 1.8s ease-in-out infinite;
   @keyframes skeleton {
     0%,
@@ -202,7 +241,13 @@
   }
 }
 
-:root {
+/*
+ * `.surface-default` brings the light values back inside an inverse section —
+ * a product plate lit on a dark stage. Product photos are multiplied onto the
+ * plate, so they need a light one to read.
+ */
+:root,
+.surface-default {
   --radius: 0.375rem;
 
   --background: oklch(1 0 0);
@@ -300,7 +345,8 @@
   --grid-line: oklch(1 0 0 / 0.055);
 }
 
-.surface-inverse {
+.surface-inverse,
+.surface-default {
   background-color: var(--background);
   color: var(--foreground);
 }
@@ -356,6 +402,24 @@
   .product-photo {
     mix-blend-mode: multiply;
   }
+
+  /* The scan beam: a hairline of brand light with a short falloff behind it,
+     travelling down a product plate. */
+  .scan-beam {
+    background: linear-gradient(
+      to bottom,
+      transparent 70%,
+      color-mix(in oklab, var(--brand) 5%, transparent) 94%,
+      color-mix(in oklab, var(--brand) 55%, transparent) 99.5%,
+      var(--brand) 100%
+    );
+  }
+}
+
+/* A sheen crossing a busy control (e.g. `aria-busy:after:scan-beam-x`), in the
+   control's own text colour. A utility, so variants apply to it. */
+@utility scan-beam-x {
+  background: linear-gradient(to right, transparent, color-mix(in oklab, currentColor 22%, transparent) 70%, transparent);
 }
 
 /* Rich-text product descriptions, mapped onto the same roles. */

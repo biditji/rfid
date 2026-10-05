@@ -22,8 +22,10 @@ const BANDS = [
  * product visual streams in behind its own Suspense boundary (`visual`).
  *
  * Motion (level 3 + 4, never under reduced motion):
- *   load    headline lines rise from a mask → copy → CTAs → band scale;
- *           the product visual runs its own entrance when it arrives
+ *   load    headline lines rise from a mask, then a reader beam crosses
+ *           "RFID" and draws its brand underline → copy → CTAs → band scale;
+ *           the product visual runs its own entrance (and first scan) when
+ *           it arrives
  *   scroll  copy drifts up toward the next section, the measurement grid
  *           moves slower than the page for depth
  */
@@ -48,13 +50,28 @@ export function Hero({ visual }: { visual: ReactNode }) {
           type: "lines",
           mask: "lines",
           autoSplit: true,
-          onSplit: (self) =>
-            gsap.from(self.lines, {
+          // Returned, so a re-split on resize picks the timeline up where it was.
+          onSplit: (self) => {
+            const word = title.querySelector<HTMLElement>("[data-hero-rfid]");
+            const tl = gsap.timeline().from(self.lines, {
               yPercent: 105,
               duration: DURATION.intro + 0.1,
               ease: EASE.emphasized,
               stagger: 0.09,
-            }),
+            });
+            if (!word) return tl;
+            const beam = word.querySelector("[data-rfid-beam]");
+            const line = word.querySelector("[data-rfid-line]");
+            return tl
+              .fromTo(line, { scaleX: 0 }, { scaleX: 1, duration: 0.75, ease: "power2.inOut" }, 0.6)
+              .fromTo(
+                beam,
+                { x: 0, autoAlpha: 0 },
+                { x: word.offsetWidth, autoAlpha: 1, duration: 0.75, ease: "power2.inOut" },
+                0.6
+              )
+              .to(beam, { autoAlpha: 0, duration: 0.2 }, ">-0.1");
+          },
         });
 
         gsap.from(steps, {
@@ -91,7 +108,22 @@ export function Hero({ visual }: { visual: ReactNode }) {
           </div>
 
           <h1 id="hero-title" data-hero-title data-intro className="mt-6 text-display text-balance">
-            Enterprise RFID hardware
+            Enterprise{" "}
+            <span data-hero-rfid className="relative inline-block">
+              RFID
+              {/* The read: a beam crosses the word and leaves the brand mark under it. */}
+              <span
+                data-rfid-line
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 h-[0.055em] origin-left bg-brand"
+              />
+              <span
+                data-rfid-beam
+                aria-hidden
+                className="invisible absolute -top-[0.02em] bottom-0 left-0 w-[2px] bg-brand shadow-[0_0_12px_color-mix(in_oklab,var(--brand)_55%,transparent)]"
+              />
+            </span>{" "}
+            hardware
           </h1>
 
           <p data-hero-step data-intro className="mt-6 max-w-lg text-lead text-pretty text-muted-foreground">

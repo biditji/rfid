@@ -209,6 +209,10 @@ export async function getProductIndex(): Promise<
  * from each other category, so the plate shows the range — a reader, an
  * antenna, a tag — rather than one product. Slides come from what the showcase
  * and rail don't use, so no product appears twice on the page.
+ *
+ * The spotlight is the product the scan sequence presents: the best-ranked
+ * presentable, in-stock product the hero and showcase haven't used, taken out
+ * of the rail.
  */
 export const HERO_SLIDE_LIMIT = 5;
 
@@ -219,6 +223,7 @@ export function curateHome(
 ): {
   heroSlides: ProductSummary[];
   showcase: ProductSummary[];
+  spotlight: ProductSummary | null;
   rail: ProductSummary[];
 } {
   const isHardware = (p: ProductSummary) => /reader|antenna/i.test(p.categoryName ?? "");
@@ -278,7 +283,10 @@ export function curateHome(
     slideCategories.add(card.categoryName ?? "");
   }
 
+  const spotlight = ranked.find((card) => !taken.has(card._id) && presentable(card) && card.stock > 0) ?? null;
+  if (spotlight) taken.add(spotlight._id);
+
   const rail = ranked.filter((card) => !taken.has(card._id)).slice(0, 10);
 
-  return { heroSlides, showcase, rail };
+  return { heroSlides, showcase, spotlight, rail };
 }
