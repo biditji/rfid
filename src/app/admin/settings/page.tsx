@@ -108,7 +108,7 @@ export default function SettingsPage() {
               <input
                 type="email"
                 id="settings-email"
-                defaultValue="hello@rfidhub.com"
+                defaultValue="hello@indiarfidshop.com"
                 className="mt-1.5 block h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
               />
             </div>
@@ -149,12 +149,12 @@ export default function SettingsPage() {
             </label>
             <div className="space-y-3">
               {[
-                { label: "Twitter / X", value: "https://twitter.com/rfidhub" },
+                { label: "Twitter / X", value: "https://twitter.com/indiarfidshop" },
                 {
                   label: "LinkedIn",
-                  value: "https://linkedin.com/company/rfidhub",
+                  value: "https://linkedin.com/company/indiarfidshop",
                 },
-                { label: "GitHub", value: "https://github.com/rfidhub" },
+                { label: "GitHub", value: "https://github.com/indiarfidshop" },
               ].map((social) => (
                 <div key={social.label} className="flex items-center gap-3">
                   <span className="w-20 text-sm text-zinc-500">

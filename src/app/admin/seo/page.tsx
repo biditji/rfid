@@ -86,7 +86,7 @@ export default function SEOPage() {
             <input
               type="url"
               id="seo-canonical"
-              defaultValue="https://rfidhub.com"
+              defaultValue="https://indiarfidshop.com"
               className="mt-1.5 block h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100"
             />
           </div>
@@ -172,7 +172,7 @@ export default function SEOPage() {
             <textarea
               id="robots-txt"
               rows={6}
-              defaultValue={`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://rfidhub.com/sitemap.xml`}
+              defaultValue={`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://indiarfidshop.com/sitemap.xml`}
               className="mt-1.5 block w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 font-mono text-xs text-zinc-900 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100 resize-none"
             />
           </div>

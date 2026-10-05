@@ -35,9 +35,9 @@ export const SITE_CONFIG = {
   /** The pin from that listing, for the contact page's embedded map. */
   mapCoordinates: "28.5925309,77.3330815",
   social: {
-    twitter: "https://twitter.com/rfidhub",
-    linkedin: "https://linkedin.com/company/rfidhub",
-    github: "https://github.com/rfidhub",
+    twitter: "https://twitter.com/indiarfidshop",
+    linkedin: "https://linkedin.com/company/indiarfidshop",
+    github: "https://github.com/indiarfidshop",
   },
 } as const;
 
