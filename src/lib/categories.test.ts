@@ -59,10 +59,10 @@ describe("category tree", () => {
 
   it("builds filter options in tree order, only for branches with live products", () => {
     const options = categoryOptions(tree, ["RFID HF Reader", "RFID Antenna"]);
-    expect(options.map((o) => [o.name, o.depth])).toEqual([
-      ["RFID Readers", 0],
-      ["RFID HF Reader", 1],
-      ["RFID Antenna", 0],
+    expect(options.map((o) => [o.name, o.depth, o.param])).toEqual([
+      ["RFID Readers", 0, "rfid-reader"],
+      ["RFID HF Reader", 1, "rfid-hf-readers"],
+      ["RFID Antenna", 0, "raid-antenna"],
     ]);
   });
 

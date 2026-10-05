@@ -76,6 +76,8 @@ export type CategoryOption = {
   depth: number;
   /** Category names whose products this option matches. */
   names: string[];
+  /** For `/products?category=`; absent for a category missing from the tree. */
+  param?: string;
 };
 
 /**
@@ -93,7 +95,7 @@ export function categoryOptions(
   const visit = (node: CategoryNode, depth: number) => {
     const names = subtreeNames(node);
     if (!names.some((name) => live.has(name))) return;
-    options.push({ name: node.category.name, depth, names });
+    options.push({ name: node.category.name, depth, names, param: categoryParam(node.category) });
     node.children.forEach((child) => visit(child, depth + 1));
   };
   tree.forEach((node) => visit(node, 0));

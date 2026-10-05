@@ -29,7 +29,7 @@ export const BACKEND_ORIGIN = trimTrailingSlash(
 
 /** Public URL of this storefront, for canonical URLs, the sitemap and robots.txt. */
 export const SITE_URL = trimTrailingSlash(
-  process.env.NEXT_PUBLIC_SITE_URL || "https://rfidhub.com"
+  process.env.NEXT_PUBLIC_SITE_URL || "https://indiarfidshop.com"
 );
 
 /**

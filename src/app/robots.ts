@@ -7,9 +7,22 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api"],
+        disallow: [
+          // Private / non-SEO areas
+          "/admin",
+          "/api/",
+          "/cart",
+          "/checkout",
+          "/account",
+          "/login",
+          // Duplicate-content URL variations (search, sort, quote-form prefills)
+          "/*?*search=",
+          "/*?*sort=",
+          "/contact?",
+        ],
       },
     ],
+    // /_next/ stays crawlable: Google needs the JS, CSS and images to render pages.
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

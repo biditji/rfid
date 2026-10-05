@@ -173,7 +173,7 @@ export async function getProductCards(limit?: number): Promise<ProductCardsResul
 }
 
 /**
- * Slug and last-modified time of every live product, for
+ * Slug, last-modified time and category of every live product, for
  * `generateStaticParams` and the sitemap.
  *
  * Deliberately does *not* go through `getProductCards`: that calls
@@ -182,11 +182,17 @@ export async function getProductCards(limit?: number): Promise<ProductCardsResul
  * error. A failed fetch here simply means nothing is prebuilt and the product
  * pages render on demand instead — which is the correct fallback.
  */
-export async function getProductIndex(): Promise<{ slug: string; updatedAt?: string }[]> {
+export async function getProductIndex(): Promise<
+  { slug: string; updatedAt?: string; categoryName?: string }[]
+> {
   const { products } = await getLiveProductsResult();
   return products
     .filter((product) => typeof product.slug === "string" && product.slug.length > 0)
-    .map((product) => ({ slug: product.slug, updatedAt: product.updatedAt }));
+    .map((product) => ({
+      slug: product.slug,
+      updatedAt: product.updatedAt,
+      categoryName: product.category?.name,
+    }));
 }
 
 /**
