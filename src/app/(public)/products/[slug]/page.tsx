@@ -48,6 +48,7 @@ const PRODUCT_TITLES: Record<string, string> = {
   "pbr3-bluetooth-uhf-rfid-portable-reader": "PBR3 Bluetooth UHF RFID Portable Reader",
   ua12: "UA12 12dBi Circular UHF RFID Antenna",
   "uhr-5": "UHR 5 UHF RFID Handheld Reader with NFC",
+  "udr-102": "UDR 102 UHF RFID Desktop Reader & Writer",
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
