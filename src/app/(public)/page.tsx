@@ -12,14 +12,19 @@ import { CtaSection } from "@/components/home/cta-section";
 import { ProductsUnavailable } from "@/components/shared/products-unavailable";
 import { curateHome, getProductCards, getStorefrontCategories } from "@/lib/products";
 import { HOME_FEATURED } from "@/lib/constants";
+import { HOME_TITLE, pageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: "Virtualsphere — Enterprise RFID Solutions",
+// `absolute`: HOME_TITLE already carries the brand, so the layout's template
+// must not add it a second time.
+export const metadata: Metadata = pageMetadata({
+  title: HOME_TITLE,
+  absolute: true,
   description:
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
-};
+  path: "/",
+});
 
 /**
  * One catalog read feeds every product slot on the page. `getProductCards()`

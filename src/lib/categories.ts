@@ -57,6 +57,11 @@ function findNode(nodes: CategoryNode[], param: string): CategoryNode | null {
   return null;
 }
 
+/** The category `?category=` names, by the same slug-or-name rules as `resolveCategory`. */
+export function findCategory(tree: CategoryNode[], param: string | null | undefined): Category | null {
+  return param ? (findNode(tree, param)?.category ?? null) : null;
+}
+
 /**
  * Resolve `?category=` to the category it names and every category name its
  * products may be filed under. Null when nothing matches.

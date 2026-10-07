@@ -3,6 +3,7 @@ import {
   buildCategoryTree,
   categoryOptions,
   categoryParam,
+  findCategory,
   resolveCategory,
   storefrontCategories,
 } from "./categories";
@@ -55,6 +56,15 @@ describe("category tree", () => {
   it("returns null for unknown categories, like the old hard-coded 'rfid-labels'", () => {
     expect(resolveCategory(tree, "rfid-labels")).toBeNull();
     expect(resolveCategory(tree, undefined)).toBeNull();
+  });
+
+  it("finds the category itself, whichever spelling of its URL was used", () => {
+    // All three reach the one category, which is why each page needs a canonical URL.
+    expect(findCategory(tree, "raid-antenna")).toBe(antenna);
+    expect(findCategory(tree, "rfid-antenna")).toBe(antenna);
+    expect(findCategory(tree, "RAID-ANTENNA")).toBe(antenna);
+    expect(findCategory(tree, "rfid-labels")).toBeNull();
+    expect(findCategory(tree, undefined)).toBeNull();
   });
 
   it("builds filter options in tree order, only for branches with live products", () => {

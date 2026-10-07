@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy - Virtualsphere",
+export const metadata: Metadata = pageMetadata({
+  title: "Privacy Policy",
   description: "Privacy policy for Virtualsphere Technologies Private Limited.",
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

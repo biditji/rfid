@@ -3,11 +3,13 @@ import { ArrowRight } from "lucide-react";
 import { Eyebrow } from "@/components/shared/section-header";
 import { PageContainer } from "@/components/shared/page-container";
 import { ButtonLink } from "@/components/ui/button";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "About Us",
+export const metadata: Metadata = pageMetadata({
+  title: "About Us – RFID Manufacturer in India",
   description: "Learn about Virtualsphere Technologies Pvt Ltd.",
-};
+  path: "/about",
+});
 
 // The company's own copy, unchanged.
 const values = [

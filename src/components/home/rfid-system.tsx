@@ -25,7 +25,7 @@ const STEPS: Step[] = [
       { label: "Power", value: "None — passive" },
       { label: "Identity", value: "96-bit EPC" },
     ],
-    link: { href: "/products?category=raid-tags", label: "Browse RFID tags" },
+    link: { href: "/products?category=rfid-tags", label: "Browse RFID tags" },
   },
   {
     name: "Reader",

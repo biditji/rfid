@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight, Download, ShieldCheck, Phone } from "lucide-react";
 import { getProductBySlug, getProductIndex, toProductSummary } from "@/lib/products";
 import { sanitizeProductHtml } from "@/lib/sanitize";
+import { pageMetadata, stripBrand } from "@/lib/seo";
 import { formatCurrency, getServerUrl, slugify, stripHtml, truncate } from "@/lib/utils";
 import { GST_NOTE, SITE_CONFIG, sdkRequestUrl, whatsappUrl } from "@/lib/constants";
 import type { Product } from "@/types";
@@ -28,29 +29,51 @@ export async function generateStaticParams() {
   return products.map(({ slug }) => ({ slug }));
 }
 
+/**
+ * Page titles that override the product's own Meta Title, by lowercase slug.
+ * Written without the brand: the layout's template adds it. While a product is
+ * listed here, editing its Meta Title in the admin panel changes nothing;
+ * delete its entry to hand the title back to the admin.
+ */
+const PRODUCT_TITLES: Record<string, string> = {
+  "desktop-barcode-printer": "Desktop Barcode Label Printer",
+  "hrd-13": "HRD 13 HF 13.56MHz USB Desktop RFID Reader",
+  "lrp-70-pendrive-reader": "LRP 70 125KHz LF RFID USB Pendrive Reader",
+  ua9: "UA9 9dBi Circular UHF RFID Antenna, IP67",
+  uca3: "UCA3 3dBi Ceramic UHF RFID Patch Antenna",
+  "udr-w101-uhf-rfid-desktop-reader-writer": "UDR-W101 UHF RFID Desktop Reader & Writer",
+  "udt9r-rfid-jewellery-tray-reader": "UDT9R RFID Jewellery Tray Reader, Bluetooth",
+  "uhr2-uhf-rfid-handheld-reader": "UHR2 Android UHF RFID Handheld Reader, 20m",
+  "vst-9662-rfid-uhf-inlay-higgs-3": "VST-9662 UHF RFID Inlay, Alien Higgs-3",
+  "pbr3-bluetooth-uhf-rfid-portable-reader": "PBR3 Bluetooth UHF RFID Portable Reader",
+  ua12: "UA12 12dBi Circular UHF RFID Antenna",
+  "uhr-5": "UHR 5 UHF RFID Handheld Reader with NFC",
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
 
   if (!product) {
-    return { title: "Product Not Found | Virtualsphere" };
+    return { title: "Product Not Found" };
   }
 
-  // Fall back to name/description if custom SEO fields are empty. The
-  // description is rich-text HTML, so strip it — otherwise search results show
-  // raw "<p><strong>…" markup as the snippet.
-  const title = product.metaTitle || `${product.name} | Virtualsphere`;
+  // Fall back to name/description if custom SEO fields are empty. The layout's
+  // title template adds the brand, so strip it from a stored title that
+  // already carries one. The description is rich-text HTML, so strip it —
+  // otherwise search results show raw "<p><strong>…" markup as the snippet.
+  const title = stripBrand(
+    PRODUCT_TITLES[product.slug.toLowerCase()] || product.metaTitle?.trim() || product.name
+  );
   const description = product.metaDescription || truncate(stripHtml(product.description ?? ""), 160);
+  const image = product.images?.find(Boolean);
 
-  return {
+  return pageMetadata({
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      images: product.images?.[0] ? [{ url: getServerUrl(product.images[0]) }] : [],
-    },
-  };
+    path: `/products/${encodeURIComponent(product.slug)}`,
+    images: image ? [getServerUrl(image)] : [],
+  });
 }
 
 /**

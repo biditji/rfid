@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import { getCategories } from "@/lib/products";
 import { buildCategoryTree, categoryParam, type CategoryNode } from "@/lib/categories";
 import { stripHtml } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
 import { PageContainer } from "@/components/shared/page-container";
 import { ActionLink, SectionHeader } from "@/components/shared/section-header";
 import { CategoryIndex, type CategoryIndexItem } from "@/components/products/category-index";
 
-export const metadata: Metadata = {
-  title: "Categories",
+export const metadata: Metadata = pageMetadata({
+  title: "RFID Product Categories",
   description: "Browse RFID product categories — tags, readers, antennas, labels, starter kits, and accessories.",
-};
+  path: "/categories",
+});
 
 export const revalidate = 600;
 

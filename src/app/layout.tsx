@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { SITE_URL } from "@/lib/config";
+import { HOME_TITLE, OPEN_GRAPH_DEFAULTS, SITE_NAME } from "@/lib/seo";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import Script from "next/script";
 
@@ -31,9 +32,12 @@ const JS_FLAG = "document.documentElement.classList.add('js')";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // The template adds the brand to every page title, so pages pass theirs
+  // without it. Never set `alternates.canonical` here: it would apply to every
+  // page that doesn't set its own.
   title: {
-    default: "Virtualsphere — Enterprise RFID Solutions",
-    template: "%s | Virtualsphere",
+    default: HOME_TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
   description:
     "Professional RFID products and inventory management solutions for modern enterprises. Tags, readers, antennas, and complete tracking systems.",
@@ -48,16 +52,14 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Virtualsphere" }],
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    siteName: "Virtualsphere",
-    title: "Virtualsphere — Enterprise RFID Solutions",
+    ...OPEN_GRAPH_DEFAULTS,
+    title: HOME_TITLE,
     description:
       "Professional RFID products and inventory management solutions for modern enterprises.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Virtualsphere — Enterprise RFID Solutions",
+    title: HOME_TITLE,
     description:
       "Professional RFID products and inventory management solutions for modern enterprises.",
   },

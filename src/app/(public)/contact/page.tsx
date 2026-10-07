@@ -5,12 +5,14 @@ import { PageContainer } from "@/components/shared/page-container";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { SectionHeader } from "@/components/shared/section-header";
 import { ContactForm } from "@/components/contact/contact-form";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Contact",
+export const metadata: Metadata = pageMetadata({
+  title: "Contact Us – RFID Quotes & Support",
   description:
     "Get in touch with Virtualsphere — request a quote, ask a technical question, or discuss your RFID deployment needs.",
-};
+  path: "/contact",
+});
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
