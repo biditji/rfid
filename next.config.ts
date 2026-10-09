@@ -18,6 +18,20 @@ const BACKEND_ORIGIN = (
 
 const backendUrl = new URL(BACKEND_ORIGIN);
 
+/**
+ * Category slugs that were saved with a typo, mapped to the spelling they were
+ * renamed to in the admin panel. Both URLs were public and indexed, so the old
+ * one answers with a permanent redirect instead of a dead end.
+ *
+ * Rename the categories in the admin panel before deploying this. The new
+ * laundry URL only resolves, and the new tags URL is only canonical, once the
+ * stored name and slug match it.
+ */
+const RENAMED_CATEGORY_SLUGS: Record<string, string> = {
+  "raid-tags": "rfid-tags",
+  "rfid-laundary-tags": "rfid-laundry-tags",
+};
+
 const nextConfig: NextConfig = {
   images: {
     // Product photos on the backend are unoptimized ~500 KB PNGs. Routing them
@@ -52,6 +66,19 @@ const nextConfig: NextConfig = {
         destination: `${BACKEND_ORIGIN}/:path*`,
       },
     ];
+  },
+
+  async redirects() {
+    return Object.entries(RENAMED_CATEGORY_SLUGS).map(([from, to]) => ({
+      source: "/products",
+      has: [{ type: "query" as const, key: "category", value: from }],
+      // The destination's own `category` wins over the one on the incoming URL;
+      // any other filter in the query string (sort, search) is carried over.
+      destination: `/products?category=${to}`,
+      // `permanent: true` would send a 308. Both mean "moved for good" to
+      // search engines; a 301 is what the SEO audit asks for.
+      statusCode: 301,
+    }));
   },
 };
 

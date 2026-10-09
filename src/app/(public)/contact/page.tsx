@@ -28,8 +28,8 @@ export default async function ContactPage({ searchParams }: Props) {
       <PageContainer className="pt-10 pb-16 lg:pt-14 lg:pb-24">
         <SectionHeader
           as="h1"
-          eyebrow="Contact"
-          title="Get in touch"
+          eyebrow="Get in touch"
+          title="Contact Virtualsphere"
           description="Have a question about our products, need a custom quote, or want to discuss a deployment? We're here to help."
         />
 

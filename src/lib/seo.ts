@@ -22,6 +22,22 @@ const TRAILING_BRAND = new RegExp(`(?:(?:\\s*\\|\\s*|\\s+[-–—]\\s+)${SITE_NA
  */
 export const stripBrand = (title: string) => title.replace(TRAILING_BRAND, "").trim();
 
+/**
+ * A product name fit for the page's <h1> and every card and cart line that
+ * repeats it. Names pasted in from the SEO title arrive as "Name | Virtualsphere"
+ * or "Name | Chip": a heading carries no brand suffix, and a pipe is a title
+ * separator rather than part of the name, so any that remain become a dash.
+ */
+export function cleanProductName(name: string): string {
+  const cleaned = stripBrand(name)
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" – ");
+  // A name that is nothing but brand and pipes still shows something.
+  return cleaned || name.trim();
+}
+
 type PageSeo = {
   /** Without the brand, which the layout's template appends — unless `absolute`. */
   title: string;

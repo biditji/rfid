@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { curateHome, HERO_SLIDE_LIMIT, type ProductSummary } from "./products";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchProductBySlug } from "./api";
+import { curateHome, getProductBySlug, HERO_SLIDE_LIMIT, toProductSummary, type ProductSummary } from "./products";
+import type { Product } from "@/types";
+
+vi.mock("./api", () => ({
+  fetchProductBySlug: vi.fn(),
+  fetchProductsResult: vi.fn(),
+  fetchCategoriesResult: vi.fn(),
+}));
 
 let seq = 0;
 function card(overrides: Partial<ProductSummary> & { categoryName: string }): ProductSummary {
@@ -99,5 +107,69 @@ describe("curateHome hero slides", () => {
 
   it("is empty for an empty catalog", () => {
     expect(curateHome([]).heroSlides).toEqual([]);
+  });
+});
+
+/** A full backend product; only the fields these tests look at are meaningful. */
+const product = (overrides: Partial<Product> = {}): Product => ({
+  _id: "p1",
+  name: "UHR2 UHF RFID Handheld Reader",
+  slug: "uhr2-uhf-rfid-handheld-reader",
+  description: "<p>An Android handheld reader.</p>",
+  model: "UHR2",
+  sku: "UHR2",
+  price: 50000,
+  stock: 5,
+  minimumQuantity: 1,
+  subtractStock: true,
+  status: true,
+  sortOrder: 0,
+  category: { _id: "c1", name: "RFID Handheld Reader" },
+  images: [],
+  specifications: [],
+  createdAt: "2026-10-01T00:00:00.000Z",
+  updatedAt: "2026-10-01T00:00:00.000Z",
+  ...overrides,
+});
+
+describe("toProductSummary", () => {
+  it("shows the cleaned name on cards", () => {
+    expect(toProductSummary(product({ name: "UDR-W101 RFID Desktop Reader & Writer | Virtualsphere" })).name).toBe(
+      "UDR-W101 RFID Desktop Reader & Writer"
+    );
+    expect(toProductSummary(product({ name: "VSL-F2 UHF RFID 4 Port Reader | Impinj E710" })).name).toBe(
+      "VSL-F2 UHF RFID 4 Port Reader – Impinj E710"
+    );
+  });
+
+  it("searches on the cleaned name", () => {
+    const { searchText } = toProductSummary(product({ name: "UHR2 UHF RFID Handheld Reader | Virtualsphere" }));
+    expect(searchText).toContain("uhr2 uhf rfid handheld reader");
+    expect(searchText).not.toContain("|");
+  });
+});
+
+describe("getProductBySlug", () => {
+  beforeEach(() => vi.mocked(fetchProductBySlug).mockReset());
+
+  it("returns the product with its name cleaned for the heading", async () => {
+    vi.mocked(fetchProductBySlug).mockResolvedValue(
+      product({ name: "UDT9R RFID Jewellery Tray Reader | Virtualsphere", sku: "UDT9R" })
+    );
+
+    const found = await getProductBySlug("udt9r-rfid-jewellery-tray-reader");
+
+    expect(found?.name).toBe("UDT9R RFID Jewellery Tray Reader");
+    expect(found?.sku).toBe("UDT9R");
+  });
+
+  it("hides a product an admin has disabled", async () => {
+    vi.mocked(fetchProductBySlug).mockResolvedValue(product({ status: false }));
+    expect(await getProductBySlug("disabled")).toBeNull();
+  });
+
+  it("is null when the backend has no such product", async () => {
+    vi.mocked(fetchProductBySlug).mockResolvedValue(null);
+    expect(await getProductBySlug("nope")).toBeNull();
   });
 });

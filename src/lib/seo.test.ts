@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOME_TITLE, pageMetadata, stripBrand } from "./seo";
+import { HOME_TITLE, cleanProductName, pageMetadata, stripBrand } from "./seo";
 
 describe("stripBrand", () => {
   it.each([
@@ -20,6 +20,37 @@ describe("stripBrand", () => {
 
   it("keeps hyphens inside model names", () => {
     expect(stripBrand("VSL-A1 Android UHF RFID Fixed Reader")).toBe("VSL-A1 Android UHF RFID Fixed Reader");
+  });
+});
+
+describe("cleanProductName", () => {
+  it.each([
+    // The product names the SEO audit found with pipe text in the <h1>.
+    ["UDR-W101 RFID Desktop Reader & Writer | Virtualsphere", "UDR-W101 RFID Desktop Reader & Writer"],
+    ["UDT9R RFID Jewellery Tray Reader | Virtualsphere", "UDT9R RFID Jewellery Tray Reader"],
+    ["UHR2 UHF RFID Handheld Reader | Virtualsphere", "UHR2 UHF RFID Handheld Reader"],
+    ["VSL-F2 UHF RFID 4 Port Reader | Impinj E710", "VSL-F2 UHF RFID 4 Port Reader – Impinj E710"],
+  ])("cleans %j", (input, expected) => {
+    expect(cleanProductName(input)).toBe(expected);
+  });
+
+  it("drops the brand but keeps every other segment, joined with a dash", () => {
+    expect(cleanProductName("HRD 13 | USB Reader | Virtualsphere")).toBe("HRD 13 – USB Reader");
+    expect(cleanProductName("HRD 13|USB Reader")).toBe("HRD 13 – USB Reader");
+  });
+
+  it("ignores stray and doubled pipes", () => {
+    expect(cleanProductName("| UHR 72 |")).toBe("UHR 72");
+    expect(cleanProductName("UHR 72 || Handheld")).toBe("UHR 72 – Handheld");
+  });
+
+  it("leaves a name without pipes alone, hyphens included", () => {
+    expect(cleanProductName("VSL-A1 Android UHF RFID Fixed Reader")).toBe("VSL-A1 Android UHF RFID Fixed Reader");
+    expect(cleanProductName("UHR 72")).toBe("UHR 72");
+  });
+
+  it("falls back to the stored name when nothing is left, rather than an empty heading", () => {
+    expect(cleanProductName("| Virtualsphere")).toBe("| Virtualsphere");
   });
 });
 

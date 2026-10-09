@@ -2,6 +2,7 @@ import { cache } from "react";
 import { connection } from "next/server";
 import { fetchProductsResult, fetchProductBySlug, fetchCategoriesResult } from "./api";
 import { stripHtml, truncate } from "./utils";
+import { cleanProductName } from "./seo";
 import { buildCategoryTree, storefrontCategories, type CategorySummary } from "./categories";
 import type { Category, Product } from "@/types";
 
@@ -21,10 +22,15 @@ const getLiveProductsResult = cache((limit?: number) =>
 
 const getLiveCategoriesResult = cache(() => fetchCategoriesResult({ status: "true" }));
 
-/** A live product by slug, or null when it doesn't exist or has been disabled. */
+/**
+ * A live product by slug, or null when it doesn't exist or has been disabled.
+ * Its name is already cleaned for display (see `cleanProductName`), so the
+ * heading, breadcrumb and cart line never show a pasted-in "| Virtualsphere".
+ */
 export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
   const product = await fetchProductBySlug(slug);
-  return product?.status === false ? null : product;
+  if (!product || product.status === false) return null;
+  return { ...product, name: cleanProductName(product.name) };
 });
 
 /**
@@ -114,10 +120,11 @@ const displaySku = (sku?: string) => (sku && /[a-z]/i.test(sku) ? sku.trim() : u
 
 export function toProductSummary(product: Product): ProductSummary {
   const excerpt = truncate(stripHtml(product.description ?? ""), 200);
+  const name = cleanProductName(product.name);
 
   return {
     _id: product._id,
-    name: product.name,
+    name,
     slug: product.slug,
     price: product.price,
     compareAtPrice: product.compareAtPrice,
@@ -132,7 +139,7 @@ export function toProductSummary(product: Product): ProductSummary {
       product.specifications
         ?.find((s) => /^(dimensions?|size|overall size)$/i.test(s.name.trim()))
         ?.value.trim() || null,
-    searchText: [product.name, product.sku, product.category?.name, product.productTags, excerpt]
+    searchText: [name, product.sku, product.category?.name, product.productTags, excerpt]
       .filter(Boolean)
       .join(" ")
       .toLowerCase(),

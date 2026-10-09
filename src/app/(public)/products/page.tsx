@@ -28,12 +28,8 @@ const CATEGORY_TITLES: Record<string, string> = {
   "barcode-printers": "Buy RFID Label Printers",
   "integrated-reader": "UHF Integrated RFID Readers",
   "four-port-reader": "4-Port UHF RFID Fixed Readers",
-  // Both spellings: the admin slug is the misspelled "raid-tags" until renamed.
-  "raid-tags": "RFID Tags – UHF, HF & On-Metal",
   "rfid-tags": "RFID Tags – UHF, HF & On-Metal",
   "rfid-uhf-label-tags": "UHF RFID Labels",
-  // Both spellings: the admin slug is the misspelled "rfid-laundary-tags" until renamed.
-  "rfid-laundary-tags": "RFID Laundry Tags",
   "rfid-laundry-tags": "RFID Laundry Tags",
   "rfid-uhf-inlay": "UHF RFID Inlays - Dry & Wet",
   "uhf-rfid-tags": "UHF RFID ABS Hard Tags",
