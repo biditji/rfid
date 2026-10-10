@@ -32,6 +32,19 @@ const RENAMED_CATEGORY_SLUGS: Record<string, string> = {
   "rfid-laundary-tags": "rfid-laundry-tags",
 };
 
+/**
+ * The same kind of fix for a product URL: slugs that were saved with a typo,
+ * mapped to the spelling they were renamed to (the product's `slug` in the
+ * admin panel). The old URL is in the sitemap and may be linked or indexed.
+ *
+ * Rename the product in the admin panel and deploy this together. The old URL
+ * stops resolving once the stored slug changes, and this redirect would point
+ * at a 404 until it has.
+ */
+const RENAMED_PRODUCT_SLUGS: Record<string, string> = {
+  "RFID-silicon-tags-UHF-laundary-tags": "RFID-silicon-tags-UHF-laundry-tags",
+};
+
 const nextConfig: NextConfig = {
   images: {
     // Product photos on the backend are unoptimized ~500 KB PNGs. Routing them
@@ -69,16 +82,23 @@ const nextConfig: NextConfig = {
   },
 
   async redirects() {
-    return Object.entries(RENAMED_CATEGORY_SLUGS).map(([from, to]) => ({
-      source: "/products",
-      has: [{ type: "query" as const, key: "category", value: from }],
-      // The destination's own `category` wins over the one on the incoming URL;
-      // any other filter in the query string (sort, search) is carried over.
-      destination: `/products?category=${to}`,
-      // `permanent: true` would send a 308. Both mean "moved for good" to
-      // search engines; a 301 is what the SEO audit asks for.
-      statusCode: 301,
-    }));
+    return [
+      ...Object.entries(RENAMED_CATEGORY_SLUGS).map(([from, to]) => ({
+        source: "/products",
+        has: [{ type: "query" as const, key: "category", value: from }],
+        // The destination's own `category` wins over the one on the incoming URL;
+        // any other filter in the query string (sort, search) is carried over.
+        destination: `/products?category=${to}`,
+        // `permanent: true` would send a 308. Both mean "moved for good" to
+        // search engines; a 301 is what the SEO audit asks for.
+        statusCode: 301,
+      })),
+      ...Object.entries(RENAMED_PRODUCT_SLUGS).map(([from, to]) => ({
+        source: `/products/${from}`,
+        destination: `/products/${to}`,
+        statusCode: 301,
+      })),
+    ];
   },
 };
 

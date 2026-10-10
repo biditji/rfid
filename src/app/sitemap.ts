@@ -8,7 +8,7 @@ import { getCategories, getProductIndex } from "@/lib/products";
  * and policy copy, all of which live in this repo. Bump it when you edit them.
  * Catalog pages take the later of this and their newest product edit.
  */
-const PAGES_UPDATED = "2026-10-05";
+const PAGES_UPDATED = "2026-10-10";
 
 /** The newest of the timestamps, never older than PAGES_UPDATED, as YYYY-MM-DD. */
 const newest = (dates: (string | undefined)[]) =>

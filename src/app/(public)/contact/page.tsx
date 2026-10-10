@@ -43,7 +43,7 @@ export default async function ContactPage({ searchParams }: Props) {
           </div>
 
           <aside className="lg:col-span-5">
-            <h2 className="text-h3">India RFID shop — RFID readers, tags, wristbands manufacturer &amp; supplier</h2>
+            <h2 className="text-h3">Contact Us</h2>
             <dl className="mt-6 border-t border-border">
               <Row label="Address">
                 <address className="not-italic">
