@@ -60,6 +60,14 @@ export const NAV_ITEMS = [
   { label: "Contact", href: "/contact" },
 ] as const;
 
+/** Legal and policy pages: the footer's bottom bar and each policy page's "other policies" list. */
+export const POLICY_LINKS = [
+  { label: "Terms & conditions", href: "/terms" },
+  { label: "Privacy policy", href: "/privacy" },
+  { label: "Return & refund policy", href: "/returns" },
+  { label: "Shipping & delivery policy", href: "/shipping" },
+] as const;
+
 export const ADMIN_NAV = {
   overview: [
     { label: "Dashboard", href: "/admin", icon: "LayoutDashboard" },

@@ -27,6 +27,25 @@ export function stockState(stock: number): StockState {
   return "in-stock";
 }
 
+/* ─── Enquiries ─────────────────────────────────────────────────────────── */
+
+/** The backend's enquiry status values (RFID-BACKEND Enquiry model enum). */
+export const ENQUIRY_STATUSES = ["New", "Contacted", "Closed"] as const;
+
+export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
+
+export const ENQUIRY_STATUS_META: Record<EnquiryStatus, { label: string; tone: Tone }> = {
+  New: { label: "New", tone: "info" },
+  Contacted: { label: "Contacted", tone: "warning" },
+  Closed: { label: "Closed", tone: "success" },
+};
+
+/** Unrecognised values render neutral with their own text rather than disappearing. */
+export function enquiryStatusMeta(status: string | null | undefined): { label: string; tone: Tone } {
+  const match = ENQUIRY_STATUSES.find((s) => s === status);
+  return match ? ENQUIRY_STATUS_META[match] : { label: status || "Unknown", tone: "neutral" };
+}
+
 /* ─── Orders ────────────────────────────────────────────────────────────── */
 
 /** The backend's order status values (RFID-BACKEND Order model enum). */

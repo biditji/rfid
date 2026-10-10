@@ -6,6 +6,7 @@ import { ShowcaseSection, ShowcaseSkeleton } from "@/components/home/showcase-se
 import { ProductDiscovery, ProductDiscoverySkeleton } from "@/components/home/product-discovery";
 import { RfidSystem } from "@/components/home/rfid-system";
 import { ProofSection } from "@/components/home/proof-section";
+import { TestimonialsSection } from "@/components/home/testimonials-section";
 import { WhySection } from "@/components/home/why-section";
 import { IndustriesSection } from "@/components/home/industries-section";
 import { CtaSection } from "@/components/home/cta-section";
@@ -85,6 +86,7 @@ export default function HomePage() {
       </Suspense>
       <RfidSystem />
       <ProofSection />
+      <TestimonialsSection />
       <WhySection />
       <IndustriesSection />
       <CtaSection />

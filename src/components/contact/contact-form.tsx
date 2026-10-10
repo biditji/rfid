@@ -1,77 +1,111 @@
 "use client";
 
-import { useId, useState } from "react";
-import { Send } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { CheckCircle2, Send } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/constants";
+import { ApiError, submitEnquiry } from "@/lib/api";
+import { ENQUIRY_SUBJECTS, enquirySubjectLabel, isEnquirySubject } from "@/lib/enquiries";
+import { warmBackend } from "@/lib/warm-backend";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 
-const SUBJECTS = [
-  { value: "quote", label: "Request a quote" },
-  { value: "technical", label: "Technical question" },
-  { value: "order", label: "Order inquiry" },
-  { value: "partnership", label: "Partnership" },
-  { value: "other", label: "Other" },
-] as const;
+type Status = { state: "idle" | "sending" | "sent" } | { state: "error"; message: string; mailto: string };
 
 /**
- * Contact form. There's no enquiry endpoint on the backend, so submitting
- * composes an email to the sales inbox with everything filled in and opens
- * the visitor's mail app — the form did nothing at all before.
+ * Contact form. A submission is saved by the backend and shows up in the admin
+ * panel under Enquiries.
+ *
+ * If saving fails (the backend is down, or cold-starting past the request's
+ * patience) the visitor is shown the reason together with a mailto link that
+ * carries everything they typed, so the message isn't lost.
  *
  * A product page's "Request a quote" arrives here as
  * ?topic=quote&product=…&qty=…, which pre-fills the subject and message.
  */
 export function ContactForm({ topic, product, quantity }: { topic?: string; product?: string; quantity?: string }) {
   const ids = { name: useId(), email: useId(), company: useId(), subject: useId(), message: useId() };
-  const [subject, setSubject] = useState<string>(SUBJECTS.some((s) => s.value === topic) ? topic! : "");
+  const [subject, setSubject] = useState<string>(isEnquirySubject(topic) ? topic : "");
   const [message, setMessage] = useState(
     product ? `I'd like a quote for ${quantity ? `${quantity} × ` : ""}${product}.\n\n` : ""
   );
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<Status>({ state: "idle" });
 
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  // The backend sleeps when idle and takes up to ~90s to wake. Poking it as the
+  // form appears lets it start up while the visitor is typing.
+  useEffect(warmBackend, []);
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    const label = SUBJECTS.find((s) => s.value === subject)?.label ?? "Website enquiry";
-    const company = String(data.get("company") ?? "").trim();
-    const body = [
-      message.trim(),
-      "",
-      "—",
-      `Name: ${data.get("name") ?? ""}`,
-      `Email: ${data.get("email") ?? ""}`,
-      ...(company ? [`Company: ${company}`] : []),
-    ].join("\n");
+    const field = (name: string) => String(data.get(name) ?? "").trim();
 
-    const title = product ? `${label}: ${product}` : label;
-    window.location.href = `mailto:${SITE_CONFIG.email}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
-    setSent(true);
+    const input = {
+      name: field("name"),
+      email: field("email"),
+      company: field("company"),
+      subject,
+      message: message.trim(),
+      product: product?.trim(),
+      quantity: quantity?.trim(),
+      website: field("website"),
+    };
+
+    setStatus({ state: "sending" });
+    try {
+      await submitEnquiry(input);
+      setStatus({ state: "sent" });
+      setSubject("");
+      setMessage("");
+    } catch (error) {
+      setStatus({
+        state: "error",
+        message:
+          error instanceof ApiError && error.status && error.status < 500
+            ? error.message
+            : "We couldn't send your message just now.",
+        mailto: mailtoFallback(input),
+      });
+    }
   };
+
+  if (status.state === "sent") {
+    return (
+      <div role="status" className="rounded-card border border-border bg-surface p-8">
+        <CheckCircle2 className="size-8 text-success" aria-hidden />
+        <h2 className="mt-4 text-h3">Message sent</h2>
+        <p className="mt-2 text-body text-muted-foreground">
+          Thanks — we&apos;ve received your message and will reply by email, usually within one working day.
+        </p>
+        <Button className="mt-6" variant="outline" onClick={() => setStatus({ state: "idle" })}>
+          Send another message
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <form className="space-y-6" onSubmit={submit}>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Field id={ids.name} label="Full name">
-          <Input id={ids.name} name="name" autoComplete="name" required />
+          <Input id={ids.name} name="name" autoComplete="name" required maxLength={120} />
         </Field>
         <Field id={ids.email} label="Email address">
-          <Input id={ids.email} name="email" type="email" autoComplete="email" required placeholder="you@company.com" />
+          <Input id={ids.email} name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@company.com" />
         </Field>
       </div>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Field id={ids.company} label="Company" optional>
-          <Input id={ids.company} name="company" autoComplete="organization" />
+          <Input id={ids.company} name="company" autoComplete="organization" maxLength={160} />
         </Field>
         <Field id={ids.subject} label="Subject">
           <NativeSelect id={ids.subject} name="subject" required value={subject} onChange={(e) => setSubject(e.target.value)}>
             <option value="" disabled>
               Select a subject
             </option>
-            {SUBJECTS.map((s) => (
+            {ENQUIRY_SUBJECTS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
               </option>
@@ -85,24 +119,56 @@ export function ContactForm({ topic, product, quantity }: { topic?: string; prod
           name="message"
           rows={6}
           required
+          maxLength={5000}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Tell us about your project — quantities, read range, environment, timelines."
         />
       </Field>
 
+      {/* Honeypot: invisible and unreachable for people, tempting for bots. */}
+      <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label>
+          Website
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </label>
+      </div>
+
       <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" size="lg" startIcon={<Send />}>
+        <Button type="submit" size="lg" startIcon={<Send />} loading={status.state === "sending"} loadingText="Sending…">
           Send message
         </Button>
         <p aria-live="polite" className="text-small text-muted-foreground">
-          {sent
-            ? `Your email app should open with the message ready. If it doesn't, write to ${SITE_CONFIG.email}.`
-            : "Opens your email app with the message filled in."}
+          {status.state === "sending" && "Sending — this can take a moment if our server is waking up."}
         </p>
       </div>
+
+      {status.state === "error" && (
+        <p role="alert" className="text-small text-danger">
+          {status.message} Please try again, or{" "}
+          <a href={status.mailto} className="font-medium underline underline-offset-4">
+            email it to {SITE_CONFIG.email}
+          </a>{" "}
+          instead.
+        </p>
+      )}
     </form>
   );
+}
+
+/** A mailto link carrying the whole message, for when the backend can't take it. */
+function mailtoFallback(input: { name: string; email: string; company: string; subject: string; message: string; product?: string }) {
+  const label = input.subject ? enquirySubjectLabel(input.subject) : "Website enquiry";
+  const body = [
+    input.message,
+    "",
+    "—",
+    `Name: ${input.name}`,
+    `Email: ${input.email}`,
+    ...(input.company ? [`Company: ${input.company}`] : []),
+  ].join("\n");
+  const title = input.product ? `${label}: ${input.product}` : label;
+  return `mailto:${SITE_CONFIG.email}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 
 function Field({

@@ -1,5 +1,5 @@
 import { API_URL } from './config';
-import type { AuthResponse, Category, Product, ProductPage } from '@/types';
+import type { AuthResponse, Category, Enquiry, Product, ProductPage } from '@/types';
 
 const isServer = typeof window === 'undefined';
 
@@ -230,7 +230,7 @@ const ADMIN_PAGE_SIZE = 100;
  */
 async function requestAllPages<T>(
   path: string,
-  key: 'orders' | 'users',
+  key: 'orders' | 'users' | 'enquiries',
   errorMessage: string
 ): Promise<T[]> {
   type Page = { [k: string]: unknown; pages?: number };
@@ -520,6 +520,44 @@ export const updateOrderStatus = (orderId: string, status: string) =>
     method: 'PUT',
     body: { status },
     errorMessage: 'Failed to update order status',
+  });
+
+// ─── Enquiries (contact form) ─────────────────────────────────────────────────
+
+/** What the contact form sends. `website` is the honeypot and must stay empty. */
+export type EnquiryInput = {
+  name: string;
+  email: string;
+  company?: string;
+  subject: string;
+  message: string;
+  product?: string;
+  quantity?: string;
+  website?: string;
+};
+
+/** Public: stores a contact-form message for the admin panel. */
+export const submitEnquiry = (data: EnquiryInput) =>
+  request<{ message: string }>('/enquiries', {
+    method: 'POST',
+    body: data,
+    errorMessage: 'We could not send your message right now.',
+  });
+
+export const fetchEnquiries = () =>
+  requestAllPages<Enquiry>('/enquiries', 'enquiries', 'Failed to fetch enquiries');
+
+export const updateEnquiryStatus = (id: string, status: string) =>
+  request<Enquiry>(`/enquiries/${id}/status`, {
+    method: 'PUT',
+    body: { status },
+    errorMessage: 'Failed to update enquiry status',
+  });
+
+export const deleteEnquiry = (id: string) =>
+  request<unknown>(`/enquiries/${id}`, {
+    method: 'DELETE',
+    errorMessage: 'Failed to delete enquiry',
   });
 
 export const fetchDashboardStats = () =>

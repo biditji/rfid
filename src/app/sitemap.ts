@@ -33,6 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/contact`, lastModified: PAGES_UPDATED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/privacy`, lastModified: PAGES_UPDATED, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/terms`, lastModified: PAGES_UPDATED, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/returns`, lastModified: PAGES_UPDATED, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/shipping`, lastModified: PAGES_UPDATED, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   const liveNames = products.flatMap((p) => (p.categoryName ? [p.categoryName] : []));

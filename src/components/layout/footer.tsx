@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LifeBuoy } from "lucide-react";
-import { SITE_CONFIG, NAV_ITEMS, PRODUCT_CATEGORIES, whatsappUrl } from "@/lib/constants";
+import { SITE_CONFIG, NAV_ITEMS, POLICY_LINKS, PRODUCT_CATEGORIES, whatsappUrl } from "@/lib/constants";
 import { slugify } from "@/lib/utils";
 import { PageContainer } from "@/components/shared/page-container";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
@@ -105,17 +105,14 @@ export function Footer() {
           <p className="text-small text-muted-foreground">
             © {new Date().getFullYear()} Virtualsphere Technologies Pvt Ltd
           </p>
-          <ul className="flex gap-6">
-            <li>
-              <Link href="/privacy" className={linkClass}>
-                Privacy policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms" className={linkClass}>
-                Terms &amp; conditions
-              </Link>
-            </li>
+          <ul className="flex flex-wrap gap-x-6 gap-y-3">
+            {POLICY_LINKS.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className={linkClass}>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
       </PageContainer>

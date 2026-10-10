@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Warehouse,
   Users,
+  Inbox,
   Search,
   Settings,
   Globe,
@@ -28,6 +29,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingCart,
   Warehouse,
   Users,
+  Inbox,
   Search,
   Settings,
   FolderTree,
@@ -49,6 +51,7 @@ const navGroups = [
       { label: "Orders", href: "/admin/orders", icon: "ShoppingCart" },
       { label: "Inventory", href: "/admin/inventory", icon: "Warehouse" },
       { label: "Customers", href: "/admin/customers", icon: "Users" },
+      { label: "Enquiries", href: "/admin/enquiries", icon: "Inbox" },
     ],
   },
   {

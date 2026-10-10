@@ -76,6 +76,24 @@ export interface ProductPage {
   total: number;
 }
 
+/** A contact-form message (RFID-BACKEND Enquiry model). */
+export interface Enquiry {
+  _id: string;
+  name: string;
+  email: string;
+  company?: string;
+  /** One of ENQUIRY_SUBJECTS' values. */
+  subject: string;
+  message: string;
+  /** Set when the visitor came from a product page's "Request a quote". */
+  product?: string;
+  quantity?: string;
+  /** One of ENQUIRY_STATUSES. */
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   _id: string;
   name: string;
